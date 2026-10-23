@@ -300,11 +300,20 @@ function send_order_email(array $rows): void
         $setPw = '<p><a href="' . e($base . '/set-password.php?t=' . $token) . '" style="display:inline-block;background:#187c19;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Choose your password</a></p>'
             . '<p style="color:#4f5d52;font-size:14px">Then log in to the Dj\'aki mi ta! app with ' . e($email) . ' to see your card.</p>';
     }
+    $verify = '';
+    foreach ($rows as $r) {
+        if ((int) $r['package'] !== ESIM_PACKAGE && order_holders((int) $r['id'])) {
+            $verify = '<div style="background:#fbf3dc;border-radius:10px;padding:16px;margin:16px 0">'
+                . '<p style="margin:0 0 8px;font-weight:bold">One more step: verify your card (2 minutes)</p>'
+                . '<p style="margin:0 0 12px;color:#4f5d52;font-size:14px">One selfie and one passport photo, one time only. Then you just scan at the shop, no passport needed.</p>'
+                . '<a href="' . e(verify_link((int) $r['id'])) . '" style="display:inline-block;background:#187c19;color:#fff;padding:10px 20px;border-radius:999px;text-decoration:none;font-weight:bold">Verify my card</a></div>';
+        }
+    }
     $html = '<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#17221a">'
         . '<div style="background:#187c19;color:#fff;padding:20px 24px;border-radius:12px 12px 0 0;font-size:22px;font-weight:bold">Dj\'aki mi ta!</div>'
         . '<div style="border:1px solid #dfe7dc;border-top:0;padding:24px;border-radius:0 0 12px 12px">'
         . '<h1 style="font-size:20px;margin:0 0 12px">Bon bini! Your order is confirmed</h1>'
-        . '<p>Order #' . (int) $first['id'] . '</p><ul>' . $lines . '</ul>' . $setPw
+        . '<p>Order #' . (int) $first['id'] . '</p><ul>' . $lines . '</ul>' . $verify . $setPw
         . '<p>Show your QR code in the app at any partner to get your discount.</p>'
         . '<p style="color:#4f5d52;font-size:13px">Questions? contact@djakimita.com</p></div></div>';
     if (brevo_send($email, "Your Dj'aki mi ta! order #" . (int) $first['id'], $html)) {

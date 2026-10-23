@@ -21,6 +21,9 @@ function icon(string $name, int $size = 20): string
         'instagram' => '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/>',
         'facebook' => '<path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8a0 0 0 0 1 0 0z"/>',
         'tiktok' => '<path d="M14 3v11a4 4 0 1 1-4-4M14 3c.5 3 2.5 5 5.5 5"/>',
+        'user' => '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+        'id' => '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.2"/><path d="M5.8 16a3.4 3.4 0 0 1 6.4 0M14 10h4M14 13.5h3"/>',
+        'shield' => '<path d="M12 3 5 6v6c0 4.5 3 7.8 7 9 4-1.2 7-4.5 7-9V6z"/><path d="m9 12 2 2 4-4"/>',
         'mail' => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
     ];
     $p = $paths[$name] ?? '';
@@ -58,28 +61,38 @@ function page_header(string $title, string $active = '', string $description = '
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/site.css?v=1">
+  <link rel="stylesheet" href="/assets/css/site.css?v=<?= (int) @filemtime(__DIR__ . '/../public/assets/css/site.css') ?>">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <header class="nav">
   <div class="wrap nav-in">
     <a class="brand" href="/" aria-label="Dj'aki mi ta! home">
-      <img src="/assets/img/logo-mark.png" alt="" width="44" height="44">
+      <img src="/assets/img/logo-mark.png" alt="" width="40" height="40">
       <span class="brand-name">Dj'aki <em>mi ta!</em></span>
     </a>
-    <nav class="links" aria-label="Main">
+    <nav class="links" id="nav-menu" aria-label="Main">
       <a href="/partners.php"<?= $active === 'partners' ? ' aria-current="page"' : '' ?>><?= e(t('nav.partners')) ?></a>
       <a href="/#how"><?= e(t('nav.how')) ?></a>
       <a href="/#cards"><?= e(t('nav.cards')) ?></a>
       <a href="/#faq"><?= e(t('nav.faq')) ?></a>
+      <a class="m-only" href="/login.php"><?= e(t('nav.login')) ?></a>
+      <div class="m-only m-lang"><?= lang_switch() ?></div>
     </nav>
     <div class="nav-right">
-      <?= lang_switch() ?>
-      <a class="login" href="/login.php"><?= e(t('nav.login')) ?></a>
+      <span class="d-only"><?= lang_switch() ?></span>
+      <a class="login d-only" href="/login.php"><?= e(t('nav.login')) ?></a>
       <a class="btn btn-sm" href="/#cards"><?= e(t('nav.cta')) ?></a>
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Menu"><?= icon('menu', 24) ?></button>
     </div>
   </div>
+  <script>
+    (function () {
+      var b = document.querySelector('.menu-btn'), nav = document.querySelector('.nav');
+      b.addEventListener('click', function () { var o = nav.classList.toggle('open'); b.setAttribute('aria-expanded', o); });
+      document.querySelectorAll('#nav-menu a').forEach(function (a) { a.addEventListener('click', function () { nav.classList.remove('open'); b.setAttribute('aria-expanded', 'false'); }); });
+    })();
+  </script>
 </header>
 <main id="main">
     <?php

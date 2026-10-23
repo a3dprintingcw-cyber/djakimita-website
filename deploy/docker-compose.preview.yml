@@ -21,10 +21,12 @@ services:
     depends_on: [djk-db]
     volumes:
       - ../app/config.local.php:/var/www/site/app/config.local.php:ro
+      - djk_storage:/var/www/site/app/storage
     networks: [sss]
 
 volumes:
   djk_db:
+  djk_storage:
 
 networks:
   sss:

@@ -37,7 +37,7 @@ function t(string $key, array $vars = []): string
     static $all = null;
     if ($all === null) {
         $all = translations();
-        foreach (translations_checkout() as $l => $strings) {
+        foreach (array_merge_recursive(translations_checkout(), translations_verify()) as $l => $strings) {
             $all[$l] = array_merge($all[$l], $strings);
         }
     }

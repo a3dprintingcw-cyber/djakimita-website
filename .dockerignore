@@ -1,0 +1,8 @@
+.git
+app/config.local.php
+app/storage
+app/cache
+deploy/.env
+*.sql
+*.sql.gz
+*.log

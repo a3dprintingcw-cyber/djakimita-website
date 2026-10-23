@@ -41,6 +41,13 @@ page_header($pageTitle . " · Dj'aki mi ta!");
       <div class="done-icon ok"><?= icon('check', 44) ?></div>
       <h1><?= e(t('done.title')) ?></h1>
       <p class="lead"><?= e(t('done.text', ['email' => $email])) ?></p>
+      <?php if (order_holders($orderId)): ?>
+        <div class="box box-verify">
+          <h2 class="h3"><?= icon('shield', 22) ?> <?= e(t('done.verify')) ?></h2>
+          <p><?= e(t('done.verify.t')) ?></p>
+          <a class="btn" href="/verify.php?<?= e(http_build_query(['o' => $orderId, 's' => $sig])) ?>"><?= e(t('v.title')) ?> <?= icon('arrow', 18) ?></a>
+        </div>
+      <?php endif; ?>
       <div class="box">
         <h2 class="h3"><?= e(t('done.next')) ?></h2>
         <ol class="done-steps">
