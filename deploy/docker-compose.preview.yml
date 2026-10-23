@@ -1,0 +1,32 @@
+# Hidden preview of the new djakimita.com on our own server.
+services:
+  djk-db:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: djk_stage
+      MARIADB_USER: djk
+      MARIADB_PASSWORD: ${DJK_DB_PASS}
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    command: --max-allowed-packet=256M
+    volumes:
+      - djk_db:/var/lib/mysql
+    networks: [sss]
+
+  djk-web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    depends_on: [djk-db]
+    volumes:
+      - ../app/config.local.php:/var/www/site/app/config.local.php:ro
+    networks: [sss]
+
+volumes:
+  djk_db:
+
+networks:
+  sss:
+    external: true
+    name: sss_default

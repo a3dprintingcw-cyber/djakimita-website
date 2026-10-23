@@ -8,3 +8,6 @@ app/config.local.php
 app/cache/
 *.log
 .DS_Store
+
+# Server secrets
+deploy/.env
