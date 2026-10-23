@@ -6,7 +6,6 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$(pwd)
 DUMP="${1:-}"
-HOST="djk.$(curl -fsS -4 https://api.ipify.org | tr . -).sslip.io"
 ENVF=deploy/.env
 
 # Secrets: generated once, stored outside git (deploy/.env, app/config.local.php)
@@ -16,6 +15,8 @@ if [ ! -f "$ENVF" ]; then
   chmod 600 "$ENVF"
 fi
 source "$ENVF"
+# Preview address: PREVIEW_HOST in deploy/.env (e.g. new.djakimita.com), else a free sslip.io address
+HOST="${PREVIEW_HOST:-djk.$(curl -fsS -4 https://api.ipify.org | tr . -).sslip.io}"
 
 cat > app/config.local.php <<PHP
 <?php
