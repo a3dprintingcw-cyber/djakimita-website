@@ -74,7 +74,7 @@ done
 
 # Daily reminder emails (09:15 Curaçao time)
 CRON='15 13 * * * docker exec djk-djk-web-1 php /var/www/site/app/cron/reminders.php >> /root/djk-reminders.log 2>&1'
-( crontab -l 2>/dev/null | grep -v 'app/cron/reminders.php'; echo "$CRON" ) | crontab -
+{ crontab -l 2>/dev/null | grep -v 'app/cron/reminders.php' || true; echo "$CRON"; } | crontab -
 
 # Route the preview address through the existing Caddy (HTTPS)
 CADDY=/root/sss/Caddyfile
