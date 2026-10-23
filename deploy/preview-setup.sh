@@ -45,6 +45,7 @@ return array_merge(require __DIR__ . '/config.example.php', [
     'stripe_secret_key' => '${STRIPE_SK:-}',
     'stripe_webhook_secret' => '${STRIPE_WHSEC:-}',
     'brevo_api_key' => '${BREVO_KEY:-}',
+    'mail_from' => '${MAIL_FROM:-contact@djakimita.com}',
     // Staff login for /admin (card checks). Hash only, the password itself is in deploy/.env
     'admin_users' => ['djakimita' => '${ADMIN_HASH:-}'],
 ]);
