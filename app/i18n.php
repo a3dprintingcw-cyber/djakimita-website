@@ -35,7 +35,12 @@ function current_lang(): string
 function t(string $key, array $vars = []): string
 {
     static $all = null;
-    $all ??= translations();
+    if ($all === null) {
+        $all = translations();
+        foreach (translations_checkout() as $l => $strings) {
+            $all[$l] = array_merge($all[$l], $strings);
+        }
+    }
     $text = $all[current_lang()][$key] ?? $all['en'][$key] ?? $key;
     foreach ($vars as $k => $v) {
         $text = str_replace('{' . $k . '}', (string) $v, $text);

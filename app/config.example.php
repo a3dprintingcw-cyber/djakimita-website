@@ -18,7 +18,7 @@ return [
     // Stripe (Dashboard > Developers > API keys). Use test keys on the preview.
     'stripe_publishable_key' => '',
     'stripe_secret_key'      => '',
-    'stripe_webhook_secret'  => '',
+    'stripe_webhook_secret'  => '',  // Stripe > Webhooks > endpoint /stripe-webhook.php, event payment_intent.succeeded
 
     // Brevo transactional email
     'brevo_api_key' => '',
