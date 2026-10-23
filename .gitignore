@@ -12,3 +12,4 @@ app/cache/
 # Server secrets
 deploy/.env
 app/storage/
+!deploy/migrations/*.sql
