@@ -162,11 +162,11 @@ function create_order(array $in): int
     }
     $mainId = $ids[0];
 
-    // Card holder names, linked to the order (no passport numbers)
+    // Card holders: name + birthdate (the shop checks these against an ID). No passport numbers.
     if ($in['card'] !== '') {
-        $h = $pdo->prepare('INSERT INTO client_package_customers (name, client_id, client_birthdate, order_id) VALUES (:n, "", "0000-00-00", :o)');
-        foreach ($in['holders'] as $name) {
-            $h->execute(['n' => $name, 'o' => $mainId]);
+        $h = $pdo->prepare('INSERT INTO client_package_customers (name, client_id, client_birthdate, order_id) VALUES (:n, "", :b, :o)');
+        foreach ($in['holders'] as $holder) {
+            $h->execute(['n' => $holder['name'], 'b' => $holder['birth'], 'o' => $mainId]);
         }
     }
     if ($in['esim']) {

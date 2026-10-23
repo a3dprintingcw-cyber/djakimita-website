@@ -11,6 +11,8 @@ $form = [
     'card' => in_array($requested, $cardKeys, true) ? $requested : ($requested === 'esim' ? '' : 'adult'),
     'esim' => $requested === 'esim',
     'holders' => array_fill(0, 5, ''),
+    'births' => array_fill(0, 5, ''),
+    'born' => false,
     'first' => '', 'last' => '', 'email' => '', 'phone' => '',
     'currency' => 'eur',
     'terms' => false,
@@ -21,6 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $form['card'] = in_array($_POST['card'] ?? '', $cardKeys, true) ? $_POST['card'] : '';
     $form['esim'] = !empty($_POST['esim']) || ($_POST['card'] ?? '') === 'none';
     $form['holders'] = array_map(fn($v) => mb_substr(trim((string) $v), 0, 80), array_pad((array) ($_POST['holders'] ?? []), 5, ''));
+    $form['births'] = array_map(fn($v) => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $v) ? (string) $v : '', array_pad((array) ($_POST['births'] ?? []), 5, ''));
+    $form['born'] = !empty($_POST['born']);
     $form['first'] = mb_substr(trim((string) ($_POST['first'] ?? '')), 0, 60);
     $form['last'] = mb_substr(trim((string) ($_POST['last'] ?? '')), 0, 60);
     $form['email'] = mb_substr(trim((string) ($_POST['email'] ?? '')), 0, 120);
@@ -40,13 +44,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $holders = [];
     if ($form['card'] !== '') {
         $slots = $holderSlots[$form['card']];
-        $holders = array_values(array_filter(array_slice($form['holders'], 0, $slots), fn($n) => $n !== ''));
-        if (!$holders && $form['first'] !== '') {
+        if ($form['holders'][0] === '' && $form['first'] !== '') {
             // Card for yourself: use the buyer's name.
-            $holders = [trim($form['first'] . ' ' . $form['last'])];
+            $form['holders'][0] = trim($form['first'] . ' ' . $form['last']);
         }
-        if (!$holders) {
+        $today = date('Y-m-d');
+        $holderError = false;
+        for ($i = 0; $i < $slots; $i++) {
+            $name = $form['holders'][$i];
+            $birth = $form['births'][$i];
+            if ($name === '' && $birth === '') {
+                continue;
+            }
+            $okDate = $birth !== '' && checkdate((int) substr($birth, 5, 2), (int) substr($birth, 8, 2), (int) substr($birth, 0, 4))
+                && $birth > '1900-01-01' && $birth <= $today;
+            if ($name === '') {
+                $errors[] = t('co.err.name');
+                $holderError = true;
+            } elseif (!$okDate) {
+                $errors[] = t('co.err.birth', ['name' => $name]);
+                $holderError = true;
+            } else {
+                $holders[] = ['name' => $name, 'birth' => $birth];
+            }
+        }
+        if (!$holders && !$holderError) {
             $errors[] = t('co.err.name');
+        }
+        if (!$form['born']) {
+            $errors[] = t('co.err.born');
         }
     }
     if ($form['first'] === '') {
@@ -139,12 +165,23 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
 
         <fieldset class="co-step" id="holders">
           <legend><span class="step-n sm">2</span> <?= e(t('co.step2')) ?></legend>
+          <p class="hint"><?= e(t('co.holder.hint')) ?></p>
           <?php for ($i = 0; $i < 5; $i++): ?>
-            <div class="field holder" data-slot="<?= $i + 1 ?>">
-              <label for="h<?= $i ?>"><?= $i === 0 ? e(t('co.holder')) : e(t('co.holder.n', ['n' => $i + 1])) . ' <span class="muted small">(' . e(t('co.holder.opt')) . ')</span>' ?></label>
-              <input id="h<?= $i ?>" name="holders[]" type="text" autocomplete="<?= $i === 0 ? 'name' : 'off' ?>" value="<?= e($form['holders'][$i]) ?>">
+            <div class="field-row holder" data-slot="<?= $i + 1 ?>">
+              <div class="field">
+                <label for="h<?= $i ?>"><?= $i === 0 ? e(t('co.holder')) : e(t('co.holder.n', ['n' => $i + 1])) . ' <span class="muted small">(' . e(t('co.holder.opt')) . ')</span>' ?></label>
+                <input id="h<?= $i ?>" name="holders[]" type="text" autocomplete="<?= $i === 0 ? 'name' : 'off' ?>" value="<?= e($form['holders'][$i]) ?>">
+              </div>
+              <div class="field">
+                <label for="b<?= $i ?>"><?= e(t('co.birth')) ?></label>
+                <input id="b<?= $i ?>" name="births[]" type="date" min="1900-01-01" max="<?= date('Y-m-d') ?>" value="<?= e($form['births'][$i]) ?>"<?= $i === 0 ? ' autocomplete="bday"' : '' ?>>
+              </div>
             </div>
           <?php endfor; ?>
+          <label class="check born-check">
+            <input type="checkbox" name="born" value="1"<?= $form['born'] ? ' checked' : '' ?>>
+            <span><strong><?= e(t('co.born')) ?></strong><br><span class="muted small"><?= e(t('co.born.t')) ?></span></span>
+          </label>
         </fieldset>
 
         <fieldset class="co-step">

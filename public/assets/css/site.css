@@ -254,3 +254,10 @@ p { margin: 0 0 1em; }
 .done-steps .row-actions { margin-top: 8px; }
 .pw-form { max-width: 440px; }
 @media (max-width: 760px) { .co-side { position: static; } }
+
+/* Card holders: name + birthdate, Curaçao confirmation */
+[hidden] { display: none !important; }
+.holder.field-row .field:first-child { flex: 3 1 220px; }
+.holder.field-row .field:last-child { flex: 2 1 160px; }
+.holder-hint, #holders > .hint { margin-bottom: 12px; }
+.born-check { background: var(--green-soft, #e8f3e8); border-radius: 14px; padding: 14px; }
