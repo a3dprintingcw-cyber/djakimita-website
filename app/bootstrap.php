@@ -26,7 +26,9 @@ date_default_timezone_set('America/Curacao');
 // ---------------------------------------------------------------------------
 // Preview lock (hidden until launch)
 // ---------------------------------------------------------------------------
-if (config('preview_pass')) {
+// The Stripe webhook is exempt: Stripe can't log in, and every call is signature-checked.
+$isWebhook = basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) === 'stripe-webhook.php';
+if (config('preview_pass') && !$isWebhook) {
     header('X-Robots-Tag: noindex, nofollow');
     $u = $_SERVER['PHP_AUTH_USER'] ?? '';
     $p = $_SERVER['PHP_AUTH_PW'] ?? '';
