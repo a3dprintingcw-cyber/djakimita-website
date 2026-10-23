@@ -1,0 +1,10 @@
+# Secrets and local settings: never commit
+app/config.local.php
+.env
+*.sql
+*.sql.gz
+
+# Generated
+app/cache/
+*.log
+.DS_Store
