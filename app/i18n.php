@@ -37,8 +37,12 @@ function t(string $key, array $vars = []): string
     static $all = null;
     if ($all === null) {
         $all = translations();
-        foreach (array_merge_recursive(translations_checkout(), translations_verify()) as $l => $strings) {
-            $all[$l] = array_merge($all[$l], $strings);
+        foreach (['translations_checkout', 'translations_verify', 'translations_account', 'translations_pages', 'translations_faq', 'translations_legal'] as $fn) {
+            if (function_exists($fn)) {
+                foreach ($fn() as $l => $strings) {
+                    $all[$l] = array_merge($all[$l], $strings);
+                }
+            }
         }
     }
     $text = $all[current_lang()][$key] ?? $all['en'][$key] ?? $key;
@@ -103,7 +107,7 @@ function translations(): array
             'diaspora.title' => 'Made for the ones coming home',
             'diaspora.text' => "Dj'aki mi ta! is a social initiative that connects Curaçaoans abroad and the KòrBonAru diaspora with their island. Every card supports local businesses.",
             'join.title' => 'Own a business on Curaçao?',
-            'join.text' => 'Reach thousands of visitors from the diaspora. Joining is free.',
+            'join.text' => 'Reach thousands of Curaçaoans from abroad when they come home.',
             'join.cta' => 'Become a partner',
             'faq.title' => 'Questions',
             'faq.q1' => 'Who can buy a card?',
@@ -120,6 +124,7 @@ function translations(): array
             'footer.terms' => 'Terms & conditions',
             'footer.privacy' => 'Privacy & cookies',
             'footer.rights' => 'All rights reserved.',
+            'footer.madeby' => 'Website by',
             'partners.title' => 'All partners',
             'partners.text' => '{n} places where your card saves you money.',
             'partners.search' => 'Search a partner or activity',
@@ -193,7 +198,7 @@ function translations(): array
             'diaspora.title' => 'Gemaakt voor wie naar huis komt',
             'diaspora.text' => "Dj'aki mi ta! is een sociaal initiatief dat Curaçaoënaars in het buitenland en de KòrBonAru diaspora verbindt met hun eiland. Elke kaart steunt lokale ondernemers.",
             'join.title' => 'Heb je een bedrijf op Curaçao?',
-            'join.text' => 'Bereik duizenden bezoekers uit de diaspora. Aansluiten is gratis.',
+            'join.text' => 'Bereik duizenden Curaçaoënaars uit het buitenland als ze thuiskomen.',
             'join.cta' => 'Word partner',
             'faq.title' => 'Vragen',
             'faq.q1' => 'Wie kan een kaart kopen?',
@@ -210,6 +215,7 @@ function translations(): array
             'footer.terms' => 'Algemene voorwaarden',
             'footer.privacy' => 'Privacy & cookies',
             'footer.rights' => 'Alle rechten voorbehouden.',
+            'footer.madeby' => 'Website door',
             'partners.title' => 'Alle partners',
             'partners.text' => '{n} plekken waar je kaart je geld bespaart.',
             'partners.search' => 'Zoek een partner of activiteit',
@@ -283,7 +289,7 @@ function translations(): array
             'diaspora.title' => 'Hasí pa esnan ku ta bin kas',
             'diaspora.text' => "Dj'aki mi ta! ta un iniciativa sosial ku ta konektá yu di Kòrsou den eksterior i e diaspora di KòrBonAru ku nan isla. Kada karchi ta sostené negoshi lokal.",
             'join.title' => 'Bo tin un negoshi na Kòrsou?',
-            'join.text' => 'Alkansá míles di bishitante di diaspora. Bira socio ta grátis.',
+            'join.text' => 'Alkansá míles di yu di Kòrsou for di eksterior ora nan bin kas.',
             'join.cta' => 'Bira socio',
             'faq.title' => 'Pregunta',
             'faq.q1' => 'Ken por kumpra un karchi?',
@@ -300,6 +306,7 @@ function translations(): array
             'footer.terms' => 'Kondishon',
             'footer.privacy' => 'Privasidat i cookies',
             'footer.rights' => 'Tur derecho reservá.',
+            'footer.madeby' => 'Website pa',
             'partners.title' => 'Tur socio',
             'partners.text' => '{n} lugá kaminda bo karchi ta spar bo plaka.',
             'partners.search' => 'Buska un socio òf aktividat',

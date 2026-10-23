@@ -131,12 +131,13 @@ page_header("Dj'aki mi ta! · " . t('hero.title'));
 <section class="section" id="faq">
   <div class="wrap narrow">
     <h2><?= e(t('faq.title')) ?></h2>
-    <?php foreach ([1, 2, 3, 4] as $i): ?>
+    <?php foreach (FAQ_HOME as $k): ?>
       <details class="faq">
-        <summary><?= e(t('faq.q' . $i)) ?> <?= icon('chevron', 18) ?></summary>
-        <p><?= e(t('faq.a' . $i, ['m' => $months])) ?></p>
+        <summary><?= e(t('f.' . $k . '.q')) ?> <?= icon('chevron', 18) ?></summary>
+        <p><?= e(t('f.' . $k . '.a', ['m' => $months])) ?></p>
       </details>
     <?php endforeach; ?>
+    <p class="faq-more"><a class="btn btn-outline" href="/faq.php"><?= e(t('faqp.more')) ?> <?= icon('arrow', 18) ?></a></p>
   </div>
 </section>
 <?php page_footer();

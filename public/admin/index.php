@@ -23,6 +23,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (($_POST['action'] ?? '') === 'logout') {
         unset($_SESSION['admin']);
         session_regenerate_id(true);
+    } elseif (admin_user() && ($_POST['action'] ?? '') === 'partner_done') {
+        db()->prepare('UPDATE partner_applications SET status = 1 WHERE id = :id')->execute(['id' => (int) ($_POST['id'] ?? 0)]);
+        $msg = 'Marked as handled.';
     } elseif (admin_user() && in_array($_POST['action'] ?? '', ['approve', 'reject'], true)) {
         $approve = $_POST['action'] === 'approve';
         $note = $approve ? '' : trim(($reasons[$_POST['reason'] ?? ''] ?? '') . ' ' . trim((string) ($_POST['note'] ?? '')));
@@ -81,11 +84,13 @@ function notify_if_order_reviewed(int $orderId): void
 $user = admin_user();
 $queue = [];
 $recent = [];
+$apps = [];
 if ($user) {
     $queue = db()->query('SELECT v.*, c.email, s.package FROM holder_verifications v
                           JOIN clients c ON c.id = v.client_id
                           LEFT JOIN sale_receits s ON s.id = v.order_id
                           WHERE v.status = 0 ORDER BY v.submitted_at, v.order_id, v.id')->fetchAll();
+    $apps = db()->query('SELECT * FROM partner_applications WHERE status = 0 ORDER BY created_at DESC LIMIT 50')->fetchAll();
     $recent = db()->query('SELECT name, status, note, reviewed_at, reviewed_by FROM holder_verifications
                            WHERE status <> 0 ORDER BY reviewed_at DESC LIMIT 15')->fetchAll();
 }
@@ -102,7 +107,7 @@ foreach ($queue as $v) {
   <meta name="robots" content="noindex, nofollow">
   <title>Card checks · Dj'aki mi ta! admin</title>
   <link rel="icon" href="/assets/img/logo-mark.png">
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+  <link rel="preload" href="/assets/fonts/bricolage-grotesque-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/assets/css/site.css?v=<?= (int) @filemtime(__DIR__ . '/../assets/css/site.css') ?>">
 </head>
 <body class="admin">
@@ -174,6 +179,18 @@ foreach ($queue as $v) {
             </article>
           <?php endforeach; ?>
         </section>
+      <?php endforeach; ?>
+
+      <h2 class="h3 mt">New partner applications <span class="count"><?= count($apps) ?></span></h2>
+      <?php if (!$apps): ?><p class="muted">No new applications.</p><?php endif; ?>
+      <?php foreach ($apps as $a): ?>
+        <article class="rv-order rv-app">
+          <h3 class="h3"><?= e($a['company']) ?> <span class="muted small">KvK <?= e($a['reg_number']) ?> · <?= e(date('d-m-Y H:i', strtotime($a['created_at']))) ?></span></h3>
+          <p><strong><?= e($a['contact_name']) ?></strong> · <a href="mailto:<?= e($a['email']) ?>"><?= e($a['email']) ?></a><?= $a['phone'] ? ' · ' . e($a['phone']) : '' ?><?= $a['website'] ? ' · ' . e($a['website']) : '' ?><?= $a['category'] ? ' · ' . e(t('bp.cat.' . $a['category'])) : '' ?></p>
+          <p class="rv-offer"><?= nl2br(e($a['offer'])) ?></p>
+          <form method="post"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
+            <button class="btn btn-sm btn-outline" name="action" value="partner_done"><?= icon('check', 16) ?> Mark as handled</button></form>
+        </article>
       <?php endforeach; ?>
 
       <?php if ($recent): ?>

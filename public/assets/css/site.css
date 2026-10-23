@@ -1,3 +1,9 @@
+/* Fonts are hosted here (not Google), so visitors' IP addresses are not sent to Google. */
+@font-face { font-family: "Bricolage Grotesque"; font-style: normal; font-weight: 600; font-display: swap; src: url(/assets/fonts/bricolage-grotesque-latin-600-normal.woff2) format("woff2"); }
+@font-face { font-family: "Bricolage Grotesque"; font-style: normal; font-weight: 800; font-display: swap; src: url(/assets/fonts/bricolage-grotesque-latin-800-normal.woff2) format("woff2"); }
+@font-face { font-family: "DM Sans"; font-style: normal; font-weight: 400; font-display: swap; src: url(/assets/fonts/dm-sans-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "DM Sans"; font-style: normal; font-weight: 500; font-display: swap; src: url(/assets/fonts/dm-sans-latin-500-normal.woff2) format("woff2"); }
+@font-face { font-family: "DM Sans"; font-style: normal; font-weight: 700; font-display: swap; src: url(/assets/fonts/dm-sans-latin-700-normal.woff2) format("woff2"); }
 /* Dj'aki mi ta! · site styles */
 :root {
   --green: #187c19;
@@ -334,3 +340,68 @@ p { margin: 0 0 1em; }
 }
 @media (max-width: 380px) { .brand-name { display: none; } }
 @media (max-width: 900px) { .m-lang .lang a { padding: 6px 12px; font-size: .85rem; } }
+
+/* Login, forgot password, delete account */
+.auth-wrap { display: flex; justify-content: center; }
+.auth-box { width: 100%; max-width: 440px; padding: 28px; }
+.auth-box .co-h1 { margin-top: 0; }
+.auth-links { margin: 16px 0 0; text-align: center; }
+.auth-links a { display: inline-flex; align-items: center; gap: 6px; color: var(--green); font-weight: 600; }
+.auth-alt { margin: 18px 0 0; padding-top: 16px; border-top: 1px solid var(--line); text-align: center; color: var(--muted); }
+.auth-alt a { color: var(--green); font-weight: 700; }
+
+/* My account */
+.acc-card { border-radius: var(--radius); padding: 18px; margin: 12px 0; color: #fff; background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%); box-shadow: var(--shadow); }
+.acc-card.is-expired { background: linear-gradient(135deg, #6b756d, #3f4741); }
+.acc-card-top { display: flex; align-items: center; gap: 12px; }
+.acc-card-top img { background: #fff; border-radius: 50%; }
+.acc-card-top div { display: flex; flex-direction: column; flex: 1; }
+.acc-card-top strong { font-family: var(--display); font-size: 1.25rem; }
+.acc-card-top .btn { background: var(--gold); color: var(--green-ink); border-color: var(--gold); }
+.acc-holders { list-style: none; padding: 0; margin: 14px 0 0; border-top: 1px solid rgba(255, 255, 255, .2); }
+.acc-holders li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, .12); }
+.acc-holders .tag { background: rgba(255, 255, 255, .92); }
+.acc-verify { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: rgba(255, 255, 255, .14); }
+.acc-verify span { display: inline-flex; align-items: center; gap: 8px; }
+.acc-verify .btn { background: var(--gold); color: var(--green-ink); border-color: var(--gold); }
+.acc-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 14px 0; border-bottom: 1px solid var(--line); color: var(--green); }
+.acc-row strong { color: var(--ink); }
+.acc-app, .acc-pw { margin-top: 18px; }
+.acc-app h2 { display: flex; align-items: center; gap: 8px; margin-top: 0; }
+.acc-pw summary { cursor: pointer; margin: 0; }
+.acc-pw[open] summary { margin-bottom: 14px; }
+.acc-bottom { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 24px; flex-wrap: wrap; }
+
+/* Become a partner */
+.bp-hero { position: relative; color: #fff; padding: 72px 0 64px; background: linear-gradient(120deg, rgba(8, 36, 10, .92), rgba(15, 74, 18, .78)), url(/assets/img/hero-beach.jpg) center / cover; }
+.bp-hero h1 { color: #fff; font-family: var(--display); font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.05; max-width: 15ch; margin: 14px 0 16px; letter-spacing: -.02em; }
+.bp-hero .lead { max-width: 56ch; color: rgba(255, 255, 255, .9); margin-bottom: 26px; }
+.bp-benefits { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; }
+.bp-benefit { border: 1.5px solid var(--line); border-radius: var(--radius); padding: 22px; background: var(--white); }
+.bp-benefit h2 { margin: 14px 0 6px; }
+.bp-benefit p { color: var(--muted); margin: 0; }
+.bp-ic { display: inline-grid; place-items: center; width: 52px; height: 52px; border-radius: 14px; background: var(--tint); color: var(--green); }
+.bp-benefit:last-child { background: var(--gold-soft); border-color: #efd99a; }
+.bp-benefit:last-child .bp-ic { background: var(--gold); color: var(--green-ink); }
+.bp-step { margin: 10px 0 0; font-weight: 600; color: var(--ink) !important; }
+.bp-quote { margin: 36px 0 0; padding: 0 0 0 18px; border-left: 4px solid var(--gold); font-family: var(--display); font-size: 1.25rem; color: var(--green-dark); max-width: 60ch; }
+.bp-form { padding: 24px; }
+.field select, .field textarea { font: inherit; padding: 12px 14px; border: 1.5px solid #c9d4c6; border-radius: 12px; background: var(--white); color: var(--ink); }
+.field select { min-height: 48px; }
+.field textarea { resize: vertical; min-height: 110px; }
+.field select:focus, .field textarea:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(24, 124, 25, .15); }
+.req { color: #b3261e; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.rv-offer { background: var(--tint); border-radius: 10px; padding: 12px; white-space: normal; }
+
+/* FAQ page + legal pages */
+.page-head h1 { font-family: var(--display); font-size: clamp(2rem, 5vw, 3rem); margin: 0 0 8px; letter-spacing: -.02em; color: var(--green-ink); }
+.page-head .lead { margin: 0; color: var(--muted); }
+.faq-more { margin-top: 24px; }
+.faq a { color: var(--green); font-weight: 600; }
+.faq-still { margin-top: 32px; background: var(--gold-soft); border-color: #efd99a; }
+.faq-still h2 { display: flex; align-items: center; gap: 8px; margin-top: 0; }
+.legal h2 { margin: 28px 0 8px; color: var(--green-dark); }
+.legal p { color: var(--ink); line-height: 1.65; margin: 0 0 10px; }
+.legal a { color: var(--green); font-weight: 600; }
+.legal .todo { background: #fff4d6; border: 1px dashed #e5ba51; border-radius: 8px; padding: 8px 12px; color: #7a5a06; }

@@ -96,7 +96,12 @@ function money(float $amount, string $currency = 'eur'): string
 require __DIR__ . '/i18n.php';
 require __DIR__ . '/i18n_checkout.php';
 require __DIR__ . '/i18n_verify.php';
+require __DIR__ . '/i18n_account.php';
+require __DIR__ . '/i18n_pages.php';
+require __DIR__ . '/i18n_faq.php';
+require __DIR__ . '/i18n_legal.php';
 require __DIR__ . '/data.php';
 require __DIR__ . '/layout.php';
 require __DIR__ . '/payments.php';
 require __DIR__ . '/verify.php';
+require __DIR__ . '/account.php';

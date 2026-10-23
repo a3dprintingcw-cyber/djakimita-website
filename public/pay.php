@@ -48,7 +48,9 @@ page_header(t('pay.title') . " · Dj'aki mi ta!");
   var elements = stripe.elements({
     clientSecret: <?= json_encode($intent['client_secret']) ?>,
     appearance: {theme: 'stripe', variables: {colorPrimary: '#187c19', borderRadius: '12px', fontFamily: 'DM Sans, system-ui, sans-serif'}},
-    fonts: [{cssSrc: 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap'}]
+    fonts: [400, 500, 700].map(function (w) {
+      return {family: 'DM Sans', weight: String(w), src: 'url(' + location.origin + '/assets/fonts/dm-sans-latin-' + w + '-normal.woff2)'};
+    })
   });
   elements.create('payment', {layout: 'tabs'}).mount('#payment-element');
   var form = document.getElementById('pay-form'), btn = document.getElementById('pay-btn'), err = document.getElementById('pay-error');

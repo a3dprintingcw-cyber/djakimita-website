@@ -252,7 +252,7 @@ function fulfill_payment_intent(string $intentId): bool
 // ---------------------------------------------------------------------------
 // Email (Brevo)
 // ---------------------------------------------------------------------------
-function brevo_send(string $to, string $subject, string $html): bool
+function brevo_send(string $to, string $subject, string $html, ?array $replyTo = null): bool
 {
     $key = (string) config('brevo_api_key');
     if ($key === '') {
@@ -265,12 +265,13 @@ function brevo_send(string $to, string $subject, string $html): bool
         CURLOPT_POST => true,
         CURLOPT_TIMEOUT => 15,
         CURLOPT_HTTPHEADER => ['api-key: ' . $key, 'Content-Type: application/json', 'Accept: application/json'],
-        CURLOPT_POSTFIELDS => json_encode([
+        CURLOPT_POSTFIELDS => json_encode(array_filter([
             'sender' => ['email' => config('mail_from'), 'name' => config('mail_from_name')],
             'to' => [['email' => $to]],
+            'replyTo' => $replyTo,
             'subject' => $subject,
             'htmlContent' => $html,
-        ]),
+        ])),
     ]);
     curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);

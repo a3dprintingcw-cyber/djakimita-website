@@ -58,9 +58,7 @@ function page_header(string $title, string $active = '', string $description = '
   <meta property="og:description" content="<?= e($desc) ?>">
   <meta property="og:image" content="<?= e(config('base_url') . '/assets/img/og.jpg') ?>">
   <link rel="icon" href="/assets/img/logo-mark.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+  <link rel="preload" href="/assets/fonts/bricolage-grotesque-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/assets/css/site.css?v=<?= (int) @filemtime(__DIR__ . '/../public/assets/css/site.css') ?>">
 </head>
 <body>
@@ -75,13 +73,13 @@ function page_header(string $title, string $active = '', string $description = '
       <a href="/partners.php"<?= $active === 'partners' ? ' aria-current="page"' : '' ?>><?= e(t('nav.partners')) ?></a>
       <a href="/#how"><?= e(t('nav.how')) ?></a>
       <a href="/#cards"><?= e(t('nav.cards')) ?></a>
-      <a href="/#faq"><?= e(t('nav.faq')) ?></a>
-      <a class="m-only" href="/login.php"><?= e(t('nav.login')) ?></a>
+      <a href="/faq.php"><?= e(t('nav.faq')) ?></a>
+      <a class="m-only" href="<?= current_client() ? '/account.php' : '/login.php' ?>"><?= e(t(current_client() ? 'ac.title' : 'nav.login')) ?></a>
       <div class="m-only m-lang"><?= lang_switch() ?></div>
     </nav>
     <div class="nav-right">
       <span class="d-only"><?= lang_switch() ?></span>
-      <a class="login d-only" href="/login.php"><?= e(t('nav.login')) ?></a>
+      <a class="login d-only" href="<?= current_client() ? '/account.php' : '/login.php' ?>"><?= e(t(current_client() ? 'ac.title' : 'nav.login')) ?></a>
       <a class="btn btn-sm" href="/#cards"><?= e(t('nav.cta')) ?></a>
       <button class="menu-btn" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Menu"><?= icon('menu', 24) ?></button>
     </div>
@@ -133,7 +131,7 @@ function page_footer(): void
     </div>
   </div>
   <div class="wrap foot-bottom">
-    <span>© <?= date('Y') ?> Deals With Discounts. <?= e(t('footer.rights')) ?></span>
+    <span>© <?= date('Y') ?> Deals With Discounts. <?= e(t('footer.rights')) ?> · <?= e(t('footer.madeby')) ?> <a href="https://a3dprinting.com" rel="noopener">A3D Printing</a></span>
     <?= lang_switch() ?>
   </div>
 </footer>
