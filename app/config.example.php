@@ -15,6 +15,13 @@ return [
     // Which program this site shows (1 = Dj'aki mi ta! / Curaçao)
     'country_id' => 1,
 
+    // Long random secret that signs links in emails (verify, order). Generate once, NEVER change:
+    //   php -r 'echo bin2hex(random_bytes(32));'
+    'app_secret' => '',
+
+    // First day of the new website: only orders from then on get "verify your card" reminders.
+    'reminders_since' => '2026-12-01',
+
     // Stripe (Dashboard > Developers > API keys). Use test keys on the preview.
     'stripe_publishable_key' => '',
     'stripe_secret_key'      => '',

@@ -14,6 +14,7 @@ if [ ! -f "$ENVF" ]; then
   echo "PREVIEW_PASS=$(openssl rand -base64 9 | tr -dc 'A-Za-z0-9' | head -c 10)" >> "$ENVF"
   chmod 600 "$ENVF"
 fi
+grep -q '^APP_SECRET=' "$ENVF" || echo "APP_SECRET=$(openssl rand -hex 32)" >> "$ENVF"
 source "$ENVF"
 COMPOSE="docker compose -p djk --env-file $ENVF -f deploy/docker-compose.preview.yml"
 # Preview address: PREVIEW_HOST in deploy/.env (e.g. new.djakimita.com), else a free sslip.io address
@@ -38,6 +39,7 @@ return array_merge(require __DIR__ . '/config.example.php', [
     'base_url' => 'https://${HOST}',
     'preview_user' => 'preview',
     'preview_pass' => '${PREVIEW_PASS}',
+    'app_secret' => '${APP_SECRET}',
     // Optional, set in deploy/.env (never in git): Stripe TEST keys and Brevo for the preview
     'stripe_publishable_key' => '${STRIPE_PK:-}',
     'stripe_secret_key' => '${STRIPE_SK:-}',
@@ -69,6 +71,10 @@ done
 for f in deploy/migrations/*.sql; do
   $COMPOSE exec -T djk-db mariadb -udjk -p"$DJK_DB_PASS" djk_stage < "$f"
 done
+
+# Daily reminder emails (09:15 Curaçao time)
+CRON='15 13 * * * docker exec djk-djk-web-1 php /var/www/site/app/cron/reminders.php >> /root/djk-reminders.log 2>&1'
+( crontab -l 2>/dev/null | grep -v 'app/cron/reminders.php'; echo "$CRON" ) | crontab -
 
 # Route the preview address through the existing Caddy (HTTPS)
 CADDY=/root/sss/Caddyfile

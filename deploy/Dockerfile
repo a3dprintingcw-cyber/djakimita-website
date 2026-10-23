@@ -7,6 +7,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends libjpeg-dev lib
 RUN printf 'SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1\n' > /etc/apache2/conf-enabled/auth.conf
 ENV APACHE_DOCUMENT_ROOT=/var/www/site/public
 RUN sed -ri 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf /etc/apache2/apache2.conf
+# Use public/.htaccess like GoDaddy does
+RUN a2enmod headers expires rewrite \
+ && printf '<Directory /var/www/site/public>\n  AllowOverride All\n</Directory>\nServerTokens Prod\nServerSignature Off\n' > /etc/apache2/conf-enabled/site.conf
 COPY . /var/www/site
 # Photo uploads for the one-time card check
 RUN printf 'upload_max_filesize = 16M\npost_max_size = 64M\nmax_file_uploads = 12\nexpose_php = Off\n' > /usr/local/etc/php/conf.d/uploads.ini

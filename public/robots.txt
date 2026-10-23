@@ -1,0 +1,11 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /Dashboard/
+Disallow: /api/
+Disallow: /account.php
+Disallow: /verify.php
+Disallow: /pay.php
+Disallow: /done.php
+Disallow: /set-password.php
+
+Sitemap: https://djakimita.com/sitemap.xml

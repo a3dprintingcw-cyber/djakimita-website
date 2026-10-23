@@ -24,7 +24,9 @@ function csrf_check(): bool
 // Signed order reference, so nobody can look at someone else's order by changing a number.
 function order_sig(int $orderId): string
 {
-    $key = (string) config('stripe_secret_key') . '|' . (string) config('db_pass') . '|djk-order';
+    // Own secret, so changing the Stripe or database password never breaks links already emailed.
+    $key = (string) config('app_secret') !== '' ? (string) config('app_secret')
+        : (string) config('stripe_secret_key') . '|' . (string) config('db_pass') . '|djk-order';
     return substr(hash_hmac('sha256', (string) $orderId, $key), 0, 24);
 }
 

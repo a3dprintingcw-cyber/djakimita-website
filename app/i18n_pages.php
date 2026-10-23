@@ -10,6 +10,9 @@ function translations_pages(): array
 {
     return [
         'en' => [
+            'nf.title' => 'Page not found',
+            'nf.text' => 'This page does not exist (anymore). Maybe the link is old. Try the homepage or look at our partners.',
+            'nf.home' => 'To the homepage',
             'bp.title' => 'Become a partner',
             'bp.kicker' => 'For businesses on Curaçao',
             'bp.h1' => 'Put your business in front of every Curaçaoan coming home',
@@ -60,6 +63,9 @@ function translations_pages(): array
             'bp.quote' => "Join the Dj'aki mi ta! family and let's build meaningful connections while giving back to our community.",
         ],
         'nl' => [
+            'nf.title' => 'Pagina niet gevonden',
+            'nf.text' => 'Deze pagina bestaat niet (meer). Misschien is de link oud. Probeer de homepage of bekijk onze partners.',
+            'nf.home' => 'Naar de homepage',
             'bp.title' => 'Word partner',
             'bp.kicker' => 'Voor bedrijven op Curaçao',
             'bp.h1' => 'Zet je bedrijf in beeld bij elke Curaçaoënaar die thuiskomt',
@@ -110,6 +116,9 @@ function translations_pages(): array
             'bp.quote' => "Word deel van de Dj'aki mi ta! familie en laten we samen echte verbindingen maken en iets teruggeven aan onze gemeenschap.",
         ],
         'pap' => [
+            'nf.title' => 'No a haña e página',
+            'nf.text' => 'E página aki no ta eksistí (mas). Kisas e link ta bieu. Purba e página prinsipal òf wak nos partnernan.',
+            'nf.home' => 'Bai e página prinsipal',
             'bp.title' => 'Bira socio',
             'bp.kicker' => 'Pa negoshi na Kòrsou',
             'bp.h1' => 'Pone bo negoshi dilanti di tur yu di Kòrsou ku ta bin kas',

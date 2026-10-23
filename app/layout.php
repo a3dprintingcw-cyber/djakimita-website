@@ -54,6 +54,16 @@ function page_header(string $title, string $active = '', string $description = '
   <title><?= e($title) ?></title>
   <meta name="description" content="<?= e($desc) ?>">
   <?php if (config('preview_pass')): ?><meta name="robots" content="noindex, nofollow"><?php endif; ?>
+  <?php
+    $u = parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'));
+    parse_str((string) ($u['query'] ?? ''), $qs);
+    unset($qs['lang']);
+    $canon = rtrim((string) config('base_url'), '/') . ($u['path'] ?? '/');
+    $withLang = fn(string $l) => $canon . '?' . http_build_query($qs + ['lang' => $l]);
+  ?>
+  <link rel="canonical" href="<?= e($withLang(current_lang())) ?>">
+  <?php foreach (array_keys(LANGS) as $l): ?><link rel="alternate" hreflang="<?= e($l) ?>" href="<?= e($withLang($l)) ?>">
+  <?php endforeach; ?><link rel="alternate" hreflang="x-default" href="<?= e($canon . ($qs ? '?' . http_build_query($qs) : '')) ?>">
   <meta property="og:title" content="<?= e($title) ?>">
   <meta property="og:description" content="<?= e($desc) ?>">
   <meta property="og:image" content="<?= e(config('base_url') . '/assets/img/og.jpg') ?>">
