@@ -28,6 +28,11 @@ return array_merge(require __DIR__ . '/config.example.php', [
     'base_url' => 'https://${HOST}',
     'preview_user' => 'preview',
     'preview_pass' => '${PREVIEW_PASS}',
+    // Optional, set in deploy/.env (never in git): Stripe TEST keys and Brevo for the preview
+    'stripe_publishable_key' => '${STRIPE_PK:-}',
+    'stripe_secret_key' => '${STRIPE_SK:-}',
+    'stripe_webhook_secret' => '${STRIPE_WHSEC:-}',
+    'brevo_api_key' => '${BREVO_KEY:-}',
 ]);
 PHP
 chmod 644 app/config.local.php
