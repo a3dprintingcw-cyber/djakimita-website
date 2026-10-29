@@ -1,6 +1,6 @@
 # Works the same on GoDaddy cPanel and on the preview server.
 Options -Indexes
-DirectoryIndex index.php
+DirectoryIndex index.php index.html
 ErrorDocument 404 /404.php
 ErrorDocument 403 /404.php
 
