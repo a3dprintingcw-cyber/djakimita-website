@@ -1,1 +1,0 @@
-__d(function(g,r,i,a,m,e,d){const t=r(d[0]),l=r(d[1]).default,n=r(d[2]).default,o=o=>t.createElement(l,{style:[{backgroundColor:'#f1f7ef',alignItems:'center',justifyContent:'center',minHeight:180},o.style]},t.createElement(n,null,'Map'));m.exports=o,m.exports.default=o,m.exports.Marker=()=>null,m.exports.PROVIDER_GOOGLE='google'},1934,[25,154,404]);
