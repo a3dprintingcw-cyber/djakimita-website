@@ -140,8 +140,13 @@ function create_order(array $in): int
 {
     $currency = $in['currency'] === 'usd' ? 'usd' : 'eur';
     $items = [];
+    $length = null;
     if ($in['card'] !== '') {
-        $items[] = ['package' => CARD_TYPES[$in['card']]['package'], 'amount' => card_price($in['card'], $currency)];
+        $length = card_length($in['card'], $in['length'] ?? null);
+        if (!$length) {
+            throw new RuntimeException('Unknown card length');
+        }
+        $items[] = ['package' => CARD_TYPES[$in['card']]['package'], 'amount' => (float) $length[$currency], 'length_id' => $length['id']];
     }
     if ($in['esim']) {
         $items[] = ['package' => ESIM_PACKAGE, 'amount' => prices()[ESIM_PRODUCT][$currency] ?? 0];
@@ -160,7 +165,11 @@ function create_order(array $in): int
                           VALUES (:e, :p, NOW(), 0, :u, :c, 0, "", 0)');
     foreach ($items as $it) {
         $ins->execute(['e' => $in['email'], 'p' => $it['package'], 'u' => $clientId, 'c' => $currency]);
-        $ids[] = (int) $pdo->lastInsertId();
+        $saleId = (int) $pdo->lastInsertId();
+        $ids[] = $saleId;
+        if (!empty($it['length_id'])) {
+            $pdo->prepare('INSERT INTO sale_lengths (sale_id, length_id) VALUES (:s, :l)')->execute(['s' => $saleId, 'l' => $it['length_id']]);
+        }
     }
     $mainId = $ids[0];
 
@@ -229,14 +238,17 @@ function fulfill_payment_intent(string $intentId): bool
         if ((int) $r['package'] === ESIM_PACKAGE) {
             $pdo->prepare('UPDATE esim SET confirmed = 1 WHERE user_id = :u AND confirmed = 0')->execute(['u' => $r['user_id']]);
         } else {
-            $months = 2;
-            foreach (CARD_TYPES as $ids) {
-                if ($ids['package'] === (int) $r['package']) {
-                    $months = prices()[$ids['product']]['months'] ?? 2;
-                }
+            // Length bought (10 days to 1 year). Orders from before lengths existed: 1 year.
+            $len = $pdo->prepare('SELECT l.days, l.months FROM sale_lengths s JOIN card_lengths l ON l.id = s.length_id WHERE s.sale_id = :s');
+            $len->execute(['s' => $r['id']]);
+            $len = $len->fetch() ?: ['days' => null, 'months' => 12];
+            if (!empty($len['days'])) {
+                $pdo->prepare('INSERT INTO clients_package (users_id, package_id, expire) VALUES (:u, :p, DATE_ADD(CURDATE(), INTERVAL :d DAY))')
+                    ->execute(['u' => $r['user_id'], 'p' => $r['package'], 'd' => (int) $len['days']]);
+            } else {
+                $pdo->prepare('INSERT INTO clients_package (users_id, package_id, expire) VALUES (:u, :p, DATE_ADD(CURDATE(), INTERVAL :m MONTH))')
+                    ->execute(['u' => $r['user_id'], 'p' => $r['package'], 'm' => max(1, (int) $len['months'])]);
             }
-            $pdo->prepare('INSERT INTO clients_package (users_id, package_id, expire) VALUES (:u, :p, DATE_ADD(CURDATE(), INTERVAL :m MONTH))')
-                ->execute(['u' => $r['user_id'], 'p' => $r['package'], 'm' => $months]);
             $clientPackageId = (int) $pdo->lastInsertId();
         }
         $pdo->prepare('UPDATE sale_receits SET status = 1, dia_orario = NOW(), client_package_id = :cp WHERE id = :id')

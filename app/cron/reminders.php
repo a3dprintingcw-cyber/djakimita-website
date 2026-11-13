@@ -78,7 +78,10 @@ foreach ($orders->fetchAll() as $o) {
 // ---------------------------------------------------------------------------
 $cards = db()->query('SELECT cp.id, cp.users_id, cp.package_id, cp.expire, DATEDIFF(cp.expire, CURDATE()) AS left_days, c.email, c.username
                       FROM clients_package cp JOIN clients c ON c.id = cp.users_id AND c.active = 1
+                      LEFT JOIN sale_receits s ON s.client_package_id = cp.id
                       WHERE DATEDIFF(cp.expire, CURDATE()) IN (30, 7)
+                        -- short cards (10 days, 1 month) get no "30 days left" mail, 10-day cards no mail at all
+                        AND COALESCE(DATEDIFF(cp.expire, DATE(s.dia_orario)), 365) > 4 * DATEDIFF(cp.expire, CURDATE())
                         AND NOT EXISTS (SELECT 1 FROM clients_package n WHERE n.users_id = cp.users_id AND n.expire > cp.expire)');
 foreach ($cards->fetchAll() as $c) {
     $kind = (int) $c['left_days'] === 30 ? 'exp30' : 'exp7';

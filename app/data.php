@@ -33,15 +33,72 @@ function prices(): array
     return $prices;
 }
 
-function card_price(string $type, string $currency = 'eur'): float
+/**
+ * Lengths for a card type, shortest first: [code => ['id','code','days','months','eur','usd','xcg']].
+ * Falls back to the single yearly price in website_product_prices when no lengths are set up.
+ */
+function card_lengths(string $type): array
 {
-    $id = CARD_TYPES[$type]['product'] ?? 0;
-    return prices()[$id][$currency] ?? 0.0;
+    static $all = null;
+    if ($all === null) {
+        $all = [];
+        try {
+            foreach (db()->query('SELECT * FROM card_lengths WHERE active = 1 ORDER BY product_id, sort') as $r) {
+                $all[(int) $r['product_id']][$r['code']] = [
+                    'id' => (int) $r['id'],
+                    'code' => $r['code'],
+                    'days' => $r['days'] !== null ? (int) $r['days'] : null,
+                    'months' => $r['months'] !== null ? (int) $r['months'] : null,
+                    'eur' => (float) $r['eur'],
+                    'usd' => (float) $r['usd'],
+                    'xcg' => (float) $r['xcg'],
+                ];
+            }
+        } catch (Throwable $e) {
+            $all = []; // table not there yet: use the old prices
+        }
+    }
+    $product = CARD_TYPES[$type]['product'] ?? 0;
+    if (!empty($all[$product])) {
+        return $all[$product];
+    }
+    $p = prices()[$product] ?? null;
+    if (!$p) {
+        return [];
+    }
+    return ['12m' => ['id' => 0, 'code' => '12m', 'days' => null, 'months' => 12, 'eur' => $p['eur'], 'usd' => $p['usd'], 'xcg' => 0.0]];
 }
 
+/** The length used when none is chosen: the year card, or the longest one. */
+function default_length(string $type): string
+{
+    $lengths = card_lengths($type);
+    return isset($lengths['12m']) ? '12m' : (string) array_key_last($lengths);
+}
+
+function card_length(string $type, ?string $code = null): ?array
+{
+    $lengths = card_lengths($type);
+    return $lengths[$code ?? default_length($type)] ?? null;
+}
+
+/** Price of a card. Without a length: the year price. */
+function card_price(string $type, string $currency = 'eur', ?string $length = null): float
+{
+    return (float) (card_length($type, $length)[$currency] ?? 0.0);
+}
+
+/** Lowest price of a card type (for "from" prices). */
+function card_from_price(string $type, string $currency = 'eur'): float
+{
+    $p = array_column(card_lengths($type), $currency);
+    return $p ? (float) min($p) : 0.0;
+}
+
+/** How long a year card lasts, in months (used in texts). */
 function card_months(): int
 {
-    return prices()[CARD_TYPES['adult']['product']]['months'] ?? 2;
+    return 12;
 }
 
 function categories(): array

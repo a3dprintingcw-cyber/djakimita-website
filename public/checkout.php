@@ -10,6 +10,7 @@ $requested = (string) ($_GET['card'] ?? 'adult');
 $form = [
     'card' => in_array($requested, $cardKeys, true) ? $requested : ($requested === 'esim' ? '' : 'adult'),
     'esim' => $requested === 'esim',
+    'length' => preg_match('/^(10d|1m|3m|6m|12m)$/', (string) ($_GET['length'] ?? '')) ? (string) $_GET['length'] : '12m',
     'holders' => array_fill(0, 5, ''),
     'births' => array_fill(0, 5, ''),
     'born' => false,
@@ -22,6 +23,7 @@ $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $form['card'] = in_array($_POST['card'] ?? '', $cardKeys, true) ? $_POST['card'] : '';
     $form['esim'] = !empty($_POST['esim']) || ($_POST['card'] ?? '') === 'none';
+    $form['length'] = (string) ($_POST['length'] ?? '');
     $form['holders'] = array_map(fn($v) => mb_substr(trim((string) $v), 0, 80), array_pad((array) ($_POST['holders'] ?? []), 5, ''));
     $form['births'] = array_map(fn($v) => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $v) ? (string) $v : '', array_pad((array) ($_POST['births'] ?? []), 5, ''));
     $form['born'] = !empty($_POST['born']);
@@ -37,6 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($form['card'] === '' && !$form['esim']) {
         $errors[] = t('co.err.empty');
+    }
+    if ($form['card'] !== '' && !card_length($form['card'], $form['length'])) {
+        $errors[] = t('co.err.length');
     }
     if (!filter_var($form['email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = t('co.err.email');
@@ -92,6 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $orderId = create_order([
                 'card' => $form['card'],
+                'length' => $form['length'],
                 'esim' => $form['esim'],
                 'holders' => $holders,
                 'first' => $form['first'],
@@ -116,8 +122,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Prices for the live summary
 $priceData = [];
 foreach ($cardKeys as $k) {
-    $priceData[$k] = ['eur' => card_price($k, 'eur'), 'usd' => card_price($k, 'usd'), 'label' => t('cards.' . $k), 'slots' => $holderSlots[$k]];
+    $lengths = [];
+    foreach (card_lengths($k) as $code => $l) {
+        $months = $l['months'] ?: 0;
+        $lengths[$code] = ['eur' => $l['eur'], 'usd' => $l['usd'], 'label' => t('co.len.' . $code), 'months' => $months];
+    }
+    $priceData[$k] = ['label' => t('cards.' . $k), 'slots' => $holderSlots[$k], 'lengths' => $lengths];
 }
+$lengthCodes = ['10d', '1m', '3m', '6m', '12m'];
 
 page_header(t('co.title') . " · Dj'aki mi ta!");
 ?>
@@ -148,7 +160,7 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
                 <span class="pick-body">
                   <strong><?= e(t('cards.' . $k)) ?></strong>
                   <span class="muted small"><?= e(t('cards.' . $k . '.t')) ?></span>
-                  <span class="pick-price" data-eur="<?= e(money(card_price($k))) ?>" data-usd="<?= e(money(card_price($k, 'usd'), 'usd')) ?>"><?= e(money(card_price($k))) ?></span>
+                  <span class="pick-price" data-eur="<?= e(t('co.from', ['p' => money(card_from_price($k))])) ?>" data-usd="<?= e(t('co.from', ['p' => money(card_from_price($k, 'usd'), 'usd')])) ?>"><?= e(t('co.from', ['p' => money(card_from_price($k))])) ?></span>
                 </span>
               </label>
             <?php endforeach; ?>
@@ -157,6 +169,24 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
               <span class="pick-body"><strong><?= e(t('co.esim.only')) ?></strong></span>
             </label>
           </div>
+
+          <div class="len-pick" id="len-pick">
+            <p class="len-title"><strong><?= e(t('co.length')) ?></strong> <span class="muted small"><?= e(t('co.len.hint')) ?></span></p>
+            <div class="len-grid" role="radiogroup" aria-label="<?= e(t('co.length')) ?>">
+              <?php foreach ($lengthCodes as $code): ?>
+                <label class="len" data-code="<?= e($code) ?>">
+                  <input type="radio" name="length" value="<?= e($code) ?>"<?= $form['length'] === $code ? ' checked' : '' ?>>
+                  <span class="len-body">
+                    <?php if ($code === '12m'): ?><span class="len-best"><?= e(t('co.len.best')) ?></span><?php endif; ?>
+                    <strong><?= e(t('co.len.' . $code)) ?></strong>
+                    <span class="len-price">–</span>
+                    <span class="len-pm muted small"></span>
+                  </span>
+                </label>
+              <?php endforeach; ?>
+            </div>
+          </div>
+
           <label class="check esim-check">
             <input type="checkbox" name="esim" value="1"<?= $form['esim'] ? ' checked' : '' ?>>
             <span><?= icon('wifi', 20) ?> <strong><?= e(t('co.esim')) ?></strong> <span class="pick-price-inline" data-eur="+<?= e(money($esimEur)) ?>" data-usd="+<?= e(money($esimUsd, 'usd')) ?>">+<?= e(money($esimEur)) ?></span><br><span class="muted small"><?= e(t('co.esim.t')) ?></span></span>
@@ -230,6 +260,7 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
   var prices = <?= json_encode($priceData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
   var esim = {eur: <?= json_encode((float) $esimEur) ?>, usd: <?= json_encode((float) $esimUsd) ?>, label: <?= json_encode(t('co.esim'), JSON_HEX_TAG) ?>};
   var form = document.querySelector('.checkout');
+  var pm = <?= json_encode(t('co.len.pm'), JSON_HEX_TAG) ?>;
   function fmt(n, cur) { var s = (n % 1 === 0) ? n.toFixed(0) : n.toFixed(2); return (cur === 'usd' ? '$' : '€') + s; }
   function update() {
     var card = (form.querySelector('input[name=card]:checked') || {}).value || 'none';
@@ -238,12 +269,29 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
     if (card === 'none') { esimBox.checked = true; }
     var withEsim = esimBox.checked;
     var slots = card === 'none' ? 0 : prices[card].slots;
+    var lens = card === 'none' ? {} : prices[card].lengths;
+    var lenBox = document.getElementById('len-pick');
+    lenBox.hidden = card === 'none' || Object.keys(lens).length < 2;
+    var chosen = form.querySelector('input[name=length]:checked');
+    if (card !== 'none' && (!chosen || !lens[chosen.value])) {
+      var def = lens['12m'] ? '12m' : Object.keys(lens).pop();
+      var r = form.querySelector('input[name=length][value="' + def + '"]');
+      if (r) { r.checked = true; } chosen = r;
+    }
+    form.querySelectorAll('.len').forEach(function (el) {
+      var l = lens[el.dataset.code];
+      el.hidden = !l;
+      if (!l) { return; }
+      el.querySelector('.len-price').textContent = fmt(l[cur], cur);
+      el.querySelector('.len-pm').textContent = l.months > 1 ? pm.replace('{p}', fmt(Math.round(l[cur] / l.months * 100) / 100, cur)) : '';
+    });
+    var len = card !== 'none' && chosen ? lens[chosen.value] : null;
     document.getElementById('holders').hidden = slots === 0;
     form.querySelectorAll('.holder').forEach(function (el) { el.hidden = Number(el.dataset.slot) > slots; });
     document.getElementById('phone-field').hidden = !withEsim;
     form.querySelectorAll('[data-eur]').forEach(function (el) { el.textContent = el.dataset[cur]; });
     var lines = [], total = 0;
-    if (card !== 'none') { lines.push([prices[card].label, prices[card][cur]]); total += prices[card][cur]; }
+    if (len) { lines.push([prices[card].label + ' · ' + len.label, len[cur]]); total += len[cur]; }
     if (withEsim) { lines.push([esim.label, esim[cur]]); total += esim[cur]; }
     var ul = document.getElementById('sum-lines'); ul.textContent = '';
     lines.forEach(function (l) { var li = document.createElement('li'); var a = document.createElement('span'); a.textContent = l[0]; var b = document.createElement('span'); b.textContent = fmt(l[1], cur); li.append(a, b); ul.append(li); });

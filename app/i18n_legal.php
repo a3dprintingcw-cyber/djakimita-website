@@ -45,7 +45,7 @@ function legal_text(string $page, string $lang): array
         ]],
         ['2. The card', [
             "The Dj'aki mi ta! card is a digital discount card. It gives the people named on the card discounts at participating partners in Curaçao.",
-            "A card is valid for {$m} months from the day of purchase. The end date is shown in your account and in the app.",
+            "A card is valid for the length chosen at purchase (10 days, 1, 3, 6 or 12 months), starting on the day of purchase. The end date is shown in your account and in the app.",
             'A card is personal. Only the people named on it may use it.',
         ]],
         ['3. Who can get a card', [
@@ -87,7 +87,7 @@ function legal_text(string $page, string $lang): array
         ]],
         ['2. De kaart', [
             "De Dj'aki mi ta! kaart is een digitale kortingskaart. De mensen die op de kaart staan krijgen korting bij deelnemende partners op Curaçao.",
-            "Een kaart is {$m} maanden geldig vanaf de dag van aankoop. De einddatum staat in je account en in de app.",
+            "Een kaart is geldig voor de looptijd die bij aankoop is gekozen (10 dagen, 1, 3, 6 of 12 maanden), vanaf de dag van aankoop. De einddatum staat in je account en in de app.",
             'Een kaart is persoonlijk. Alleen de mensen die erop staan mogen hem gebruiken.',
         ]],
         ['3. Wie een kaart kan krijgen', [

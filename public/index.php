@@ -4,7 +4,7 @@ require __DIR__ . '/../app/bootstrap.php';
 $count = partner_count();
 $best = best_discount();
 $months = card_months();
-$fromPrice = money(min(card_price('kids'), card_price('senior'), card_price('teen')));
+$fromPrice = money(min(array_map('card_from_price', array_keys(CARD_TYPES))));
 $featured = array_values(array_filter(partners(null, '', 24), fn($p) => $p['image_id'] || $p['has_picture']));
 $featured = array_slice($featured, 0, 8);
 
@@ -97,8 +97,9 @@ page_header("Dj'aki mi ta! · " . t('hero.title'));
           <?php if ($c['popular']): ?><span class="ribbon"><?= e(t('cards.popular')) ?></span><?php endif; ?>
           <h3><?= e(t('cards.' . $k)) ?></h3>
           <p class="muted small"><?= e(t('cards.' . $k . '.t')) ?></p>
-          <p class="price"><?= e(money(card_price($k))) ?> <span class="muted small">/ <?= e(money(card_price($k, 'usd'), 'usd')) ?></span></p>
-          <p class="small"><?= icon('check', 16) ?> <?= e(t('cards.valid', ['m' => $months])) ?></p>
+          <p class="price"><?= e(money(card_price($k))) ?> <span class="muted small"><?= e(t('cards.peryear')) ?></span><span class="muted small price-usd"><?= e(money(card_price($k, 'usd'), 'usd')) ?></span></p>
+          <p class="small"><?= icon('check', 16) ?> <?= e(t('cards.valid')) ?></p>
+          <?php if (count(card_lengths($k)) > 1): ?><p class="small muted"><?= e(t('cards.short', ['p' => money(card_from_price($k))])) ?></p><?php endif; ?>
           <a class="btn btn-block<?= $c['popular'] ? '' : ' btn-outline' ?>" href="/checkout.php?card=<?= e($k) ?>"><?= e(t('cards.buy')) ?></a>
         </div>
       <?php endforeach; ?>
