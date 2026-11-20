@@ -84,8 +84,9 @@ function render_countdown(): void
   <link rel="stylesheet" href="/assets/css/site.css">
   <style>
     .cd { min-height: 100vh; min-height: 100svh; display: grid; place-items: center; padding: 28px 18px;
-      background: linear-gradient(180deg, rgba(11,46,13,.55), rgba(11,46,13,.82)), url(/assets/img/hero-beach.jpg) center/cover no-repeat; }
-    .cd-box { width: 100%; max-width: 640px; text-align: center; color: #fff; }
+      background: linear-gradient(180deg, rgba(8,40,30,.55), rgba(8,40,30,.35) 45%, rgba(8,40,30,.7)), url(/assets/img/hero-beach.jpg) 30% 85%/cover no-repeat; }
+    @media (min-width: 700px) { .cd { background-size: auto, 165% auto; background-position: 0 0, 0% 100%; background-color: #0b2e0d; } }
+    .cd-box { width: 100%; max-width: 640px; text-align: center; color: #fff; text-shadow: 0 1px 12px rgba(0,0,0,.35); }
     .cd-top { display: flex; align-items: flex-end; justify-content: center; gap: 18px; margin-bottom: 22px; }
     .cd-logo-tall { width: 150px; padding: 14px 16px 10px; }
     .cd-mascot { width: auto; height: 250px; filter: drop-shadow(0 12px 24px rgba(0,0,0,.35)); animation: cd-wave 3s ease-in-out infinite; transform-origin: 50% 100%; }
