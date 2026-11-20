@@ -315,6 +315,14 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
     document.getElementById('sum-total').textContent = fmt(total, cur);
   }
   form.addEventListener('change', update);
+  // The buyer is usually card holder 1: copy that name into First/Last name until they are edited by hand.
+  var h0 = document.getElementById('h0'), fn = document.getElementById('first'), ln = document.getElementById('last');
+  [fn, ln].forEach(function (el) { el.dataset.auto = el.value === '' ? '1' : ''; el.addEventListener('input', function () { el.dataset.auto = ''; }); });
+  h0.addEventListener('input', function () {
+    var parts = h0.value.trim().split(/\s+/), first = parts.shift() || '', last = parts.join(' ');
+    if (fn.dataset.auto) { fn.value = first; }
+    if (ln.dataset.auto) { ln.value = last; }
+  });
   update();
 })();
 </script>
