@@ -18,7 +18,7 @@ function before_launch(): bool
 
 /** Pages that stay open during the countdown, so people can pre-order. */
 const COUNTDOWN_OPEN = [
-    'checkout.php', 'pay.php', 'done.php', 'verify.php', 'mollie-webhook.php', 'stripe-webhook.php',
+    'checkout.php', 'pay.php', 'done.php', 'verify.php', 'mollie-webhook.php', 'stripe-webhook.php', 'sentoo-webhook.php',
     'login.php', 'account.php', 'set-password.php', 'forgot-password.php', 'deletedata.php',
     'termsandconditions.php', 'privacy_policy.php', 'img.php', 'robots.txt',
     'partners.php', 'partner.php',

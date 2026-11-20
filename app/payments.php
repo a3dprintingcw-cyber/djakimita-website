@@ -144,6 +144,9 @@ function mollie(string $method, string $path, array $params = []): array
  */
 function payment_status(string $token): array
 {
+    if (str_starts_with($token, 'sentoo:')) {
+        return ['state' => sentoo_state(substr($token, 7)), 'amount' => 0.0, 'currency' => 'xcg', 'checkout' => ''];
+    }
     if (str_starts_with($token, 'tr_')) {
         $p = mollie('GET', 'payments/' . rawurlencode($token));
         $st = (string) ($p['status'] ?? '');
@@ -196,6 +199,99 @@ function mollie_create_payment(int $mainId, float $total, string $currency, stri
 }
 
 // ---------------------------------------------------------------------------
+// Sentoo (local bank payments in guilders). Used when the customer pays in XCG.
+// Order tokens look like "sentoo:<transaction id>".
+// ---------------------------------------------------------------------------
+function sentoo_ready(): bool
+{
+    return (string) config('sentoo_merchant_id') !== '' && (string) config('sentoo_secret') !== '';
+}
+
+function sentoo(string $method, string $path, array $params = []): array
+{
+    $base = rtrim((string) config('sentoo_api_base', 'https://api.sentoo.io/v1'), '/');
+    $ch = curl_init($base . '/' . ltrim($path, '/'));
+    $opts = [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 25,
+        CURLOPT_HTTPHEADER => ['X-SENTOO-SECRET: ' . config('sentoo_secret'), 'Accept: application/json'],
+    ];
+    if ($method === 'POST') {
+        $opts[CURLOPT_POST] = true;
+        $opts[CURLOPT_POSTFIELDS] = http_build_query($params);
+    }
+    curl_setopt_array($ch, $opts);
+    $body = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err = curl_error($ch);
+    curl_close($ch);
+    $data = json_decode((string) $body, true) ?: [];
+    if ($code >= 400 || $err || isset($data['error'])) {
+        $msg = is_array($data['error'] ?? null) ? ($data['error']['message'] ?? '') : (string) ($data['error'] ?? '');
+        error_log('Sentoo error ' . $code . ': ' . ($msg ?: $err ?: substr((string) $body, 0, 200)));
+        throw new RuntimeException('Payment service unavailable');
+    }
+    return $data;
+}
+
+/** Starts a Sentoo payment. Returns [transaction id, payment page url]. */
+function sentoo_create_payment(int $mainId, float $total, string $email): array
+{
+    $base = rtrim((string) config('base_url'), '/');
+    $res = sentoo('POST', 'payment/new', [
+        'sentoo_merchant' => config('sentoo_merchant_id'),
+        'sentoo_amount' => (int) round($total * 100),
+        'sentoo_currency' => (string) config('sentoo_currency', 'XCG'),
+        'sentoo_description' => "Dj'aki mi ta! order #" . $mainId,
+        'sentoo_return_url' => $base . '/done.php?' . http_build_query(['o' => $mainId, 's' => order_sig($mainId)]),
+        'sentoo_customer' => $email,
+        'sentoo_expires' => date('c', time() + 2 * 3600),
+    ]);
+    $ok = $res['success'] ?? [];
+    $id = (string) ($ok['message'] ?? ($ok['data']['id'] ?? ($ok['data']['transaction_id'] ?? '')));
+    $url = (string) ($ok['data']['url'] ?? '');
+    if ($id === '' || $url === '') {
+        error_log('Sentoo: unexpected answer ' . substr(json_encode($res), 0, 300));
+        throw new RuntimeException('Payment service unavailable');
+    }
+    return [$id, $url];
+}
+
+/** 'paid', 'failed' or 'open' for a Sentoo transaction. */
+function sentoo_state(string $id): string
+{
+    $res = sentoo('GET', 'payment/status/' . rawurlencode((string) config('sentoo_merchant_id')) . '/' . rawurlencode($id));
+    $ok = $res['success'] ?? [];
+    $st = strtolower((string) ($ok['data']['status'] ?? ($ok['message'] ?? '')));
+    if ($st === 'success') {
+        return 'paid';
+    }
+    return in_array($st, ['failed', 'expired', 'cancelled', 'canceled', 'rejected'], true) ? 'failed' : 'open';
+}
+
+/** Give a failed/expired Sentoo order a fresh payment so the customer can try again. Returns the payment page. */
+function sentoo_new_payment(int $mainId): string
+{
+    $rows = order_rows($mainId);
+    if (!$rows) {
+        throw new RuntimeException('Order not found');
+    }
+    $total = 0.0;
+    foreach ($rows as $r) {
+        $total += (float) ($_SESSION['sentoo_amount'][$mainId] ?? 0);
+        break;
+    }
+    if ($total <= 0) {
+        throw new RuntimeException('Unknown amount');
+    }
+    [$id, $url] = sentoo_create_payment($mainId, $total, (string) $rows[0]['email']);
+    db()->prepare('UPDATE sale_receits SET token = :n WHERE token = :o AND status = 0')
+        ->execute(['n' => 'sentoo:' . $id, 'o' => $rows[0]['token']]);
+    $_SESSION['sentoo_url'][$mainId] = $url;
+    return $url;
+}
+
+// ---------------------------------------------------------------------------
 // Customers
 // ---------------------------------------------------------------------------
 
@@ -235,7 +331,7 @@ function create_password_token(int $clientId, int $hours = 72): string
  */
 function create_order(array $in): int
 {
-    $currency = $in['currency'] === 'usd' ? 'usd' : 'eur';
+    $currency = in_array($in['currency'], ['usd', 'xcg'], true) ? $in['currency'] : 'eur';
     $items = [];
     $length = null;
     if ($in['card'] !== '') {
@@ -246,7 +342,7 @@ function create_order(array $in): int
         $items[] = ['package' => CARD_TYPES[$in['card']]['package'], 'amount' => (float) $length[$currency], 'length_id' => $length['id']];
     }
     if ($in['esim']) {
-        $items[] = ['package' => ESIM_PACKAGE, 'amount' => prices()[ESIM_PRODUCT][$currency] ?? 0];
+        $items[] = ['package' => ESIM_PACKAGE, 'amount' => (float) (prices()[ESIM_PRODUCT][$currency] ?? 0)];
     }
     $total = array_sum(array_column($items, 'amount'));
     if (!$items || $total <= 0) {
@@ -282,7 +378,12 @@ function create_order(array $in): int
             ->execute(['e' => $in['email'], 'p' => $in['phone'], 'u' => $clientId]);
     }
 
-    if (use_mollie()) {
+    if ($currency === 'xcg') {
+        [$sid, $surl] = sentoo_create_payment($mainId, $total, $in['email']);
+        $token = 'sentoo:' . $sid;
+        $_SESSION['sentoo_url'][$mainId] = $surl;
+        $_SESSION['sentoo_amount'][$mainId] = $total;
+    } elseif (use_mollie()) {
         $token = (string) mollie_create_payment($mainId, $total, $currency, $in['email'])['id'];
     } else {
         $token = (string) stripe('POST', 'payment_intents', [

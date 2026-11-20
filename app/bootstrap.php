@@ -28,7 +28,7 @@ date_default_timezone_set('America/Curacao');
 // ---------------------------------------------------------------------------
 // The payment webhooks are exempt: the provider can't log in. Stripe calls are signature-checked;
 // Mollie only sends a payment id, which we look up at Mollie ourselves.
-$isWebhook = in_array(basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')), ['stripe-webhook.php', 'mollie-webhook.php'], true);
+$isWebhook = in_array(basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')), ['stripe-webhook.php', 'mollie-webhook.php', 'sentoo-webhook.php'], true);
 if (config('preview_pass') && !$isWebhook) {
     header('X-Robots-Tag: noindex, nofollow');
     $u = $_SERVER['PHP_AUTH_USER'] ?? '';
@@ -89,8 +89,11 @@ function url(string $path = '', array $query = []): string
 
 function money(float $amount, string $currency = 'eur'): string
 {
-    $symbol = $currency === 'usd' ? '$' : '€';
     $formatted = fmod($amount, 1.0) == 0.0 ? number_format($amount, 0) : number_format($amount, 2);
+    if ($currency === 'xcg') {
+        return 'XCG ' . $formatted;
+    }
+    $symbol = $currency === 'usd' ? '$' : '€';
     return $symbol . $formatted;
 }
 

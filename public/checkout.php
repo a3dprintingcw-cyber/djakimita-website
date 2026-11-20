@@ -5,6 +5,7 @@ $cardKeys = array_keys(CARD_TYPES);
 $holderSlots = ['kids' => 1, 'teen' => 1, 'adult' => 1, 'senior' => 1, 'family' => 5];
 $esimEur = prices()[ESIM_PRODUCT]['eur'] ?? 11;
 $esimUsd = prices()[ESIM_PRODUCT]['usd'] ?? 12.5;
+$esimXcg = prices()[ESIM_PRODUCT]['xcg'] ?? 22;
 
 $requested = (string) ($_GET['card'] ?? 'adult');
 $form = [
@@ -31,7 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $form['last'] = mb_substr(trim((string) ($_POST['last'] ?? '')), 0, 60);
     $form['email'] = mb_substr(trim((string) ($_POST['email'] ?? '')), 0, 120);
     $form['phone'] = mb_substr(preg_replace('/[^0-9+ ]/', '', (string) ($_POST['phone'] ?? '')), 0, 20);
-    $form['currency'] = ($_POST['currency'] ?? '') === 'usd' ? 'usd' : 'eur';
+    $form['currency'] = in_array($_POST['currency'] ?? '', ['usd', 'xcg'], true) ? $_POST['currency'] : 'eur';
+    if ($form['currency'] === 'xcg' && !sentoo_ready()) {
+        $form['currency'] = 'eur';
+    }
     $form['terms'] = !empty($_POST['terms']);
 
     if (!csrf_check()) {
@@ -125,7 +129,7 @@ foreach ($cardKeys as $k) {
     $lengths = [];
     foreach (card_lengths($k) as $code => $l) {
         $months = $l['months'] ?: 0;
-        $lengths[$code] = ['eur' => $l['eur'], 'usd' => $l['usd'], 'label' => t('co.len.' . $code), 'months' => $months];
+        $lengths[$code] = ['eur' => $l['eur'], 'usd' => $l['usd'], 'xcg' => $l['xcg'], 'label' => t('co.len.' . $code), 'months' => $months];
     }
     $priceData[$k] = ['label' => t('cards.' . $k), 'slots' => $holderSlots[$k], 'lengths' => $lengths];
 }
@@ -196,7 +200,7 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
 
           <label class="check esim-check">
             <input type="checkbox" name="esim" value="1"<?= $form['esim'] ? ' checked' : '' ?>>
-            <span><?= icon('wifi', 20) ?> <strong><?= e(t('co.esim')) ?></strong> <span class="pick-price-inline" data-eur="+<?= e(money($esimEur)) ?>" data-usd="+<?= e(money($esimUsd, 'usd')) ?>">+<?= e(money($esimEur)) ?></span><br><span class="muted small"><?= e(t('co.esim.t')) ?></span></span>
+            <span><?= icon('wifi', 20) ?> <strong><?= e(t('co.esim')) ?></strong> <span class="pick-price-inline" data-eur="+<?= e(money($esimEur)) ?>" data-usd="+<?= e(money($esimUsd, 'usd')) ?>" data-xcg="+<?= e(money($esimXcg, 'xcg')) ?>">+<?= e(money($esimEur)) ?></span><br><span class="muted small"><?= e(t('co.esim.t')) ?></span></span>
           </label>
         </fieldset>
 
@@ -247,6 +251,7 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
             <span class="muted small"><?= e(t('co.currency')) ?></span>
             <label><input type="radio" name="currency" value="eur"<?= $form['currency'] === 'eur' ? ' checked' : '' ?>> € EUR</label>
             <label><input type="radio" name="currency" value="usd"<?= $form['currency'] === 'usd' ? ' checked' : '' ?>> $ USD</label>
+            <?php if (sentoo_ready()): ?><label><input type="radio" name="currency" value="xcg"<?= $form['currency'] === 'xcg' ? ' checked' : '' ?>> ƒ XCG</label><?php endif; ?>
           </div>
           <ul class="sum-lines" id="sum-lines"></ul>
           <p class="sum-total"><span><?= e(t('co.total')) ?></span> <strong id="sum-total">–</strong></p>
@@ -255,7 +260,8 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
             <span><?= str_replace('{terms}', '<a href="/termsandconditions.php" target="_blank">' . e(t('co.terms.link')) . '</a>', e(t('co.terms'))) ?></span>
           </label>
           <button class="btn btn-lg btn-block" type="submit"><?= e(t('co.continue')) ?> <?= icon('arrow', 18) ?></button>
-          <p class="trust"><?= icon('check', 16) ?> <?= e(t('co.secure')) ?></p>
+          <p class="trust" data-pay="mollie"><?= icon('check', 16) ?> <?= e(t('co.secure')) ?></p>
+          <p class="trust" data-pay="sentoo" hidden><?= icon('check', 16) ?> <?= e(t('co.secure.sentoo')) ?></p>
           <p class="trust"><?= icon('check', 16) ?> <?= e(t(function_exists('before_launch') && before_launch() ? 'co.instant.pre' : 'co.instant')) ?></p>
         </div>
       </aside>
@@ -265,13 +271,15 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
 <script>
 (function () {
   var prices = <?= json_encode($priceData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
-  var esim = {eur: <?= json_encode((float) $esimEur) ?>, usd: <?= json_encode((float) $esimUsd) ?>, label: <?= json_encode(t('co.esim'), JSON_HEX_TAG) ?>};
+  var esim = {eur: <?= json_encode((float) $esimEur) ?>, usd: <?= json_encode((float) $esimUsd) ?>, xcg: <?= json_encode((float) $esimXcg) ?>, label: <?= json_encode(t('co.esim'), JSON_HEX_TAG) ?>};
   var form = document.querySelector('.checkout');
   var lenTitle = <?= json_encode(t('co.len.for'), JSON_HEX_TAG) ?>;
-  function fmt(n, cur) { var s = (n % 1 === 0) ? n.toFixed(0) : n.toFixed(2); return (cur === 'usd' ? '$' : '€') + s; }
+  function fmt(n, cur) { var s = (n % 1 === 0) ? n.toFixed(0) : n.toFixed(2); return cur === 'xcg' ? 'XCG ' + s : (cur === 'usd' ? '$' : '€') + s; }
   function update() {
     var card = (form.querySelector('input[name=card]:checked') || {}).value || 'none';
     var cur = form.querySelector('input[name=currency]:checked').value;
+    form.querySelector('[data-pay=mollie]').hidden = cur === 'xcg';
+    form.querySelector('[data-pay=sentoo]').hidden = cur !== 'xcg';
     var esimBox = form.querySelector('input[name=esim]');
     if (card === 'none') { esimBox.checked = true; }
     var withEsim = esimBox.checked;
@@ -298,7 +306,7 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
     document.getElementById('holders').hidden = slots === 0;
     form.querySelectorAll('.holder').forEach(function (el) { el.hidden = Number(el.dataset.slot) > slots; });
     document.getElementById('phone-field').hidden = !withEsim;
-    form.querySelectorAll('[data-eur]').forEach(function (el) { el.textContent = el.dataset[cur]; });
+    form.querySelectorAll('[data-eur]').forEach(function (el) { el.textContent = el.dataset[cur] || el.dataset.eur; });
     var lines = [], total = 0;
     if (len) { lines.push([prices[card].label + ' · ' + len.label, len[cur]]); total += len[cur]; }
     if (withEsim) { lines.push([esim.label, esim[cur]]); total += esim[cur]; }

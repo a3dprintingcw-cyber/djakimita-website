@@ -18,6 +18,17 @@ if ((int) $rows[0]['status'] === 1) {
     exit;
 }
 try {
+    if (str_starts_with((string) $rows[0]['token'], 'sentoo:')) {
+        $state = payment_status((string) $rows[0]['token'])['state'];
+        if ($state === 'paid') {
+            header('Location: ' . $doneUrl);
+        } elseif ($state === 'open' && !empty($_SESSION['sentoo_url'][$orderId])) {
+            header('Location: ' . $_SESSION['sentoo_url'][$orderId]);
+        } else {
+            header('Location: ' . sentoo_new_payment($orderId));
+        }
+        exit;
+    }
     $pay = payment_status((string) $rows[0]['token']);
     // Mollie: the customer pays on Mollie's own secure page, then comes back to done.php
     if (str_starts_with((string) $rows[0]['token'], 'tr_')) {

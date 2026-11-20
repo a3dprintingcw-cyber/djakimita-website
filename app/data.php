@@ -26,6 +26,7 @@ function prices(): array
             $prices[(int) $r['product_id']] = [
                 'eur' => (float) $r['eur'],
                 'usd' => (float) $r['dollars'],
+                'xcg' => round((float) $r['dollars'] * 1.79),
                 'months' => (int) $r['months_for_expire'],
             ];
         }

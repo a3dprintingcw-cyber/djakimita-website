@@ -26,6 +26,13 @@ return [
     // Webhook needs no setup: every payment tells Mollie to call /mollie-webhook.php.
     'mollie_api_key' => '',
 
+    // Sentoo (merchant portal > merchant account > General info). When set, customers can pay
+    // in guilders (XCG) from their local bank. Set the "Payment status URL" in Sentoo to
+    // https://djakimita.com/sentoo-webhook.php
+    'sentoo_merchant_id' => '',
+    'sentoo_secret' => '',
+    'sentoo_currency' => 'XCG',
+
     // Stripe (Dashboard > Developers > API keys). Use test keys on the preview.
     'stripe_publishable_key' => '',
     'stripe_secret_key'      => '',
