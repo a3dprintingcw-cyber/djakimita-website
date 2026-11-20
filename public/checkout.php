@@ -147,6 +147,11 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
       </div>
     <?php endif; ?>
 
+    <style>
+      #len-pick .len-body { padding: 18px 6px 14px; }
+      #len-pick .len-price { font-size: 1.35rem; margin-top: 2px; }
+      .card-pick .pick-body { min-height: 0; }
+    </style>
     <form class="checkout" method="post" action="/checkout.php" novalidate>
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
       <div class="co-main">
@@ -160,7 +165,6 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
                 <span class="pick-body">
                   <strong><?= e(t('cards.' . $k)) ?></strong>
                   <span class="muted small"><?= e(t('cards.' . $k . '.t')) ?></span>
-                  <span class="pick-price" data-eur="<?= e(t('co.from', ['p' => money(card_from_price($k))])) ?>" data-usd="<?= e(t('co.from', ['p' => money(card_from_price($k, 'usd'), 'usd')])) ?>"><?= e(t('co.from', ['p' => money(card_from_price($k))])) ?></span>
                 </span>
               </label>
             <?php endforeach; ?>
@@ -170,8 +174,12 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
             </label>
           </div>
 
-          <div class="len-pick" id="len-pick">
-            <p class="len-title"><strong><?= e(t('co.length')) ?></strong> <span class="muted small"><?= e(t('co.len.hint')) ?></span></p>
+        </fieldset>
+
+        <fieldset class="co-step" id="len-pick">
+          <legend><span class="step-n sm">2</span> <span id="len-legend"><?= e(t('co.length')) ?></span></legend>
+          <p class="hint"><?= e(t(function_exists('before_launch') && before_launch() ? 'co.len.hint.pre' : 'co.len.hint')) ?></p>
+          <div>
             <div class="len-grid" role="radiogroup" aria-label="<?= e(t('co.length')) ?>">
               <?php foreach ($lengthCodes as $code): ?>
                 <label class="len" data-code="<?= e($code) ?>">
@@ -180,7 +188,6 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
                     <?php if ($code === '12m'): ?><span class="len-best"><?= e(t('co.len.best')) ?></span><?php endif; ?>
                     <strong><?= e(t('co.len.' . $code)) ?></strong>
                     <span class="len-price">–</span>
-                    <span class="len-pm muted small"></span>
                   </span>
                 </label>
               <?php endforeach; ?>
@@ -194,7 +201,7 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
         </fieldset>
 
         <fieldset class="co-step" id="holders">
-          <legend><span class="step-n sm">2</span> <?= e(t('co.step2')) ?></legend>
+          <legend><span class="step-n sm" id="holders-n">3</span> <?= e(t('co.step2')) ?></legend>
           <p class="hint"><?= e(t('co.holder.hint')) ?></p>
           <?php for ($i = 0; $i < 5; $i++): ?>
             <div class="field-row holder" data-slot="<?= $i + 1 ?>">
@@ -215,7 +222,7 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
         </fieldset>
 
         <fieldset class="co-step">
-          <legend><span class="step-n sm">3</span> <?= e(t('co.step3')) ?></legend>
+          <legend><span class="step-n sm" id="details-n">4</span> <?= e(t('co.step3')) ?></legend>
           <div class="field-row">
             <div class="field"><label for="first"><?= e(t('co.first')) ?></label><input id="first" name="first" type="text" autocomplete="given-name" required value="<?= e($form['first']) ?>"></div>
             <div class="field"><label for="last"><?= e(t('co.last')) ?></label><input id="last" name="last" type="text" autocomplete="family-name" value="<?= e($form['last']) ?>"></div>
@@ -249,7 +256,7 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
           </label>
           <button class="btn btn-lg btn-block" type="submit"><?= e(t('co.continue')) ?> <?= icon('arrow', 18) ?></button>
           <p class="trust"><?= icon('check', 16) ?> <?= e(t('co.secure')) ?></p>
-          <p class="trust"><?= icon('check', 16) ?> <?= e(t('co.instant')) ?></p>
+          <p class="trust"><?= icon('check', 16) ?> <?= e(t(function_exists('before_launch') && before_launch() ? 'co.instant.pre' : 'co.instant')) ?></p>
         </div>
       </aside>
     </form>
@@ -260,7 +267,7 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
   var prices = <?= json_encode($priceData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
   var esim = {eur: <?= json_encode((float) $esimEur) ?>, usd: <?= json_encode((float) $esimUsd) ?>, label: <?= json_encode(t('co.esim'), JSON_HEX_TAG) ?>};
   var form = document.querySelector('.checkout');
-  var pm = <?= json_encode(t('co.len.pm'), JSON_HEX_TAG) ?>;
+  var lenTitle = <?= json_encode(t('co.len.for'), JSON_HEX_TAG) ?>;
   function fmt(n, cur) { var s = (n % 1 === 0) ? n.toFixed(0) : n.toFixed(2); return (cur === 'usd' ? '$' : '€') + s; }
   function update() {
     var card = (form.querySelector('input[name=card]:checked') || {}).value || 'none';
@@ -283,9 +290,11 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
       el.hidden = !l;
       if (!l) { return; }
       el.querySelector('.len-price').textContent = fmt(l[cur], cur);
-      el.querySelector('.len-pm').textContent = l.months > 1 ? pm.replace('{p}', fmt(Math.round(l[cur] / l.months * 100) / 100, cur)) : '';
     });
     var len = card !== 'none' && chosen ? lens[chosen.value] : null;
+    if (card !== 'none') { document.getElementById('len-legend').textContent = lenTitle.replace('{card}', prices[card].label); }
+    document.getElementById('holders-n').textContent = '3';
+    document.getElementById('details-n').textContent = card === 'none' ? '2' : '4';
     document.getElementById('holders').hidden = slots === 0;
     form.querySelectorAll('.holder').forEach(function (el) { el.hidden = Number(el.dataset.slot) > slots; });
     document.getElementById('phone-field').hidden = !withEsim;
