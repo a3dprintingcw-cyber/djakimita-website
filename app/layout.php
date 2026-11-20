@@ -79,6 +79,11 @@ function page_header(string $title, string $active = '', string $description = '
       <img src="/assets/img/logo-mark.png" alt="" width="40" height="40">
       <span class="brand-name">Dj'aki <em>mi ta!</em></span>
     </a>
+    <?php if (function_exists('before_launch') && before_launch()): ?>
+    <div class="nav-right">
+      <a class="login" href="<?= current_client() ? '/account.php' : '/login.php' ?>"><?= e(t(current_client() ? 'ac.title' : 'nav.login')) ?></a>
+    </div>
+    <?php else: ?>
     <nav class="links" id="nav-menu" aria-label="Main">
       <a href="/partners.php"<?= $active === 'partners' ? ' aria-current="page"' : '' ?>><?= e(t('nav.partners')) ?></a>
       <a href="/#how"><?= e(t('nav.how')) ?></a>
@@ -93,10 +98,11 @@ function page_header(string $title, string $active = '', string $description = '
       <a class="btn btn-sm" href="/#cards"><?= e(t('nav.cta')) ?></a>
       <button class="menu-btn" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Menu"><?= icon('menu', 24) ?></button>
     </div>
+    <?php endif; ?>
   </div>
   <script>
     (function () {
-      var b = document.querySelector('.menu-btn'), nav = document.querySelector('.nav');
+      var b = document.querySelector('.menu-btn'), nav = document.querySelector('.nav'); if (!b) return;
       b.addEventListener('click', function () { var o = nav.classList.toggle('open'); b.setAttribute('aria-expanded', o); });
       document.querySelectorAll('#nav-menu a').forEach(function (a) { a.addEventListener('click', function () { nav.classList.remove('open'); b.setAttribute('aria-expanded', 'false'); }); });
     })();
@@ -121,6 +127,7 @@ function page_footer(): void
         <a href="https://www.tiktok.com/@djakimita.cw" aria-label="TikTok" rel="noopener"><?= icon('tiktok') ?></a>
       </div>
     </div>
+    <?php if (!(function_exists('before_launch') && before_launch())): ?>
     <div>
       <h3><?= e(t('footer.links')) ?></h3>
       <ul>
@@ -130,6 +137,7 @@ function page_footer(): void
         <li><a href="/faq.php"><?= e(t('nav.faq')) ?></a></li>
       </ul>
     </div>
+    <?php endif; ?>
     <div>
       <h3><?= e(t('footer.contact')) ?></h3>
       <ul>
@@ -142,7 +150,7 @@ function page_footer(): void
   </div>
   <div class="wrap foot-bottom">
     <span>© <?= date('Y') ?> Deals With Discounts. <?= e(t('footer.rights')) ?> · <?= e(t('footer.madeby')) ?> <a href="https://a3dprinting.com" rel="noopener">A3D Printing</a></span>
-    <?= lang_switch() ?>
+    <?php if (!(function_exists('before_launch') && before_launch())): ?><?= lang_switch() ?><?php endif; ?>
   </div>
 </footer>
 </body>
