@@ -83,7 +83,11 @@ function render_countdown(): void
     .cd { min-height: 100vh; min-height: 100svh; display: grid; place-items: center; padding: 28px 18px;
       background: linear-gradient(180deg, rgba(11,46,13,.55), rgba(11,46,13,.82)), url(/assets/img/hero-beach.jpg) center/cover no-repeat; }
     .cd-box { width: 100%; max-width: 640px; text-align: center; color: #fff; }
-    .cd-logo { width: 168px; margin: 0 auto 22px; background: #fff; border-radius: 28px; padding: 18px 20px 12px; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
+    .cd-top { display: flex; align-items: flex-end; justify-content: center; gap: 18px; margin-bottom: 22px; }
+    .cd-mascot { width: auto; height: 250px; filter: drop-shadow(0 12px 24px rgba(0,0,0,.35)); animation: cd-wave 3s ease-in-out infinite; transform-origin: 50% 100%; }
+    @keyframes cd-wave { 0%,100% { transform: rotate(0); } 50% { transform: rotate(-3deg) translateY(-4px); } }
+    @media (prefers-reduced-motion: reduce) { .cd-mascot { animation: none; } }
+    .cd-logo { flex: none; width: 210px; height: auto; align-self: center; margin: 0; background: #fff; border-radius: 28px; padding: 0; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
     .cd-kicker { display: inline-block; background: var(--gold); color: var(--green-ink); font-weight: 700; font-size: .85rem;
       letter-spacing: .06em; text-transform: uppercase; padding: 6px 14px; border-radius: 999px; margin-bottom: 14px; }
     .cd h1 { color: #fff; font-size: clamp(2rem, 6vw, 3.4rem); margin-bottom: 12px; }
@@ -99,16 +103,17 @@ function render_countdown(): void
     .cd-note { font-size: .92rem; opacity: .85; margin: 14px auto 0; max-width: 440px; }
     .cd-foot { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 14px 22px; justify-content: center; align-items: center; font-size: .92rem; }
     .cd-foot a { color: #fff; opacity: .9; }
-    .cd .lang a { color: #fff; }
-    .cd .lang a.on { background: rgba(255,255,255,.2); }
-    @media (max-width: 520px) { .cd-logo { width: 112px; padding: 12px 14px 8px; border-radius: 20px; margin-bottom: 16px; } }
+    @media (max-width: 520px) { .cd-logo { width: 150px; border-radius: 22px; } .cd-mascot { height: 190px; } .cd-top { gap: 12px; margin-bottom: 16px; } }
     @media (max-width: 420px) { .cd-clock { gap: 6px; } .cd-lbl { font-size: .68rem; letter-spacing: .03em; } }
   </style>
 </head>
 <body>
 <main class="cd">
   <div class="cd-box">
-    <img class="cd-logo" src="/assets/img/logo-full.png" alt="Dj'aki mi ta!" width="325" height="417">
+    <div class="cd-top">
+      <img class="cd-logo" src="/assets/img/logo-square.jpg" alt="Dj'aki mi ta!" width="300" height="300">
+      <img class="cd-mascot" src="/assets/img/mascot.webp" alt="" width="260" height="401">
+    </div>
     <span class="cd-kicker"><?= e($c['kicker']) ?></span>
     <h1><?= e($c['title']) ?></h1>
     <p class="cd-text"><?= e($c['text']) ?></p>
@@ -125,7 +130,6 @@ function render_countdown(): void
     <p class="cd-note"><?= e($c['note']) ?></p>
 
     <div class="cd-foot">
-      <?= lang_switch() ?>
       <a href="/login.php"><?= e($c['login']) ?></a>
       <a href="https://www.instagram.com/djakimita/" rel="noopener" aria-label="Instagram"><?= icon('instagram', 20) ?></a>
     </div>
