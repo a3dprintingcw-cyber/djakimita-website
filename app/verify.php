@@ -149,12 +149,32 @@ function admin_user(): ?string
 
 function admin_login(string $user, string $pass): bool
 {
+    // Lock out after too many wrong tries: 5 per address or 10 for the whole admin, per 30 minutes.
+    $ipKey = hash('sha256', 'admin-ip:' . ($_SERVER['REMOTE_ADDR'] ?? ''));
+    $allKey = hash('sha256', 'admin-all');
+    try {
+        $st = db()->prepare('SELECT k, COUNT(*) n FROM login_attempts WHERE k IN (:a, :b) AND created_at > NOW() - INTERVAL 30 MINUTE GROUP BY k');
+        $st->execute(['a' => $ipKey, 'b' => $allKey]);
+        $n = array_column($st->fetchAll(), 'n', 'k');
+        if (($n[$ipKey] ?? 0) >= 5 || ($n[$allKey] ?? 0) >= 10) {
+            usleep(800000);
+            return false;
+        }
+    } catch (Throwable $e) {
+        // table missing: fall back to the delay below
+    }
     $users = (array) config('admin_users', []);
     $hash = $users[$user] ?? null;
     if ($hash && password_verify($pass, $hash)) {
         session_regenerate_id(true);
         $_SESSION['admin'] = $user;
         return true;
+    }
+    try {
+        $ins = db()->prepare('INSERT INTO login_attempts (k, created_at) VALUES (:k, NOW())');
+        $ins->execute(['k' => $ipKey]);
+        $ins->execute(['k' => $allKey]);
+    } catch (Throwable $e) {
     }
     usleep(800000); // slow down password guessing
     return false;
