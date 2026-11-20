@@ -84,6 +84,7 @@ function render_countdown(): void
       background: linear-gradient(180deg, rgba(11,46,13,.55), rgba(11,46,13,.82)), url(/assets/img/hero-beach.jpg) center/cover no-repeat; }
     .cd-box { width: 100%; max-width: 640px; text-align: center; color: #fff; }
     .cd-top { display: flex; align-items: flex-end; justify-content: center; gap: 18px; margin-bottom: 22px; }
+    .cd-logo-tall { width: 150px; padding: 14px 16px 10px; }
     .cd-mascot { width: auto; height: 250px; filter: drop-shadow(0 12px 24px rgba(0,0,0,.35)); animation: cd-wave 3s ease-in-out infinite; transform-origin: 50% 100%; }
     @keyframes cd-wave { 0%,100% { transform: rotate(0); } 50% { transform: rotate(-3deg) translateY(-4px); } }
     @media (prefers-reduced-motion: reduce) { .cd-mascot { animation: none; } }
@@ -111,8 +112,15 @@ function render_countdown(): void
 <main class="cd">
   <div class="cd-box">
     <div class="cd-top">
+      <?php $img = __DIR__ . '/../public_html/assets/img/'; $img2 = __DIR__ . '/../public/assets/img/'; ?>
+      <?php if (is_file($img . 'logo-square.jpg') || is_file($img2 . 'logo-square.jpg')): ?>
       <img class="cd-logo" src="/assets/img/logo-square.jpg" alt="Dj'aki mi ta!" width="300" height="300">
+      <?php else: ?>
+      <img class="cd-logo cd-logo-tall" src="/assets/img/logo-full.png" alt="Dj'aki mi ta!" width="325" height="417">
+      <?php endif; ?>
+      <?php if (is_file($img . 'mascot.webp') || is_file($img2 . 'mascot.webp')): ?>
       <img class="cd-mascot" src="/assets/img/mascot.webp" alt="" width="260" height="401">
+      <?php endif; ?>
     </div>
     <span class="cd-kicker"><?= e($c['kicker']) ?></span>
     <h1><?= e($c['title']) ?></h1>
