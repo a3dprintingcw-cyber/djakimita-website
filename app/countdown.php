@@ -6,7 +6,8 @@
 /** Launch moment as a timestamp, or 0 when no countdown is set. */
 function launch_ts(): int
 {
-    $at = (string) config('launch_at', '');
+    // Set in the admin under Settings; config.local.php is the fallback.
+    $at = (string) setting('launch_at', (string) config('launch_at', ''));
     return $at === '' ? 0 : (int) strtotime($at);
 }
 

@@ -429,6 +429,17 @@ function fulfill_payment_intent(string $intentId): bool
     if (payment_status($intentId)['state'] !== 'paid') {
         return false;
     }
+    activate_order($intentId);
+    return true;
+}
+
+/**
+ * Turns the unpaid rows of an order into cards (and eSIMs) and emails the customer.
+ * Only call this once the money is in: after the provider says paid, or when staff mark it paid.
+ * Returns how many rows were activated (0 when it was already done).
+ */
+function activate_order(string $intentId): int
+{
     $pdo = db();
     $pdo->beginTransaction();
     $rows = $pdo->prepare('SELECT * FROM sale_receits WHERE token = :t AND status = 0 FOR UPDATE');
@@ -467,7 +478,7 @@ function fulfill_payment_intent(string $intentId): bool
     if ($activated) {
         send_order_email($activated);
     }
-    return true;
+    return count($activated);
 }
 
 // ---------------------------------------------------------------------------

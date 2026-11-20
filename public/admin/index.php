@@ -1,213 +1,137 @@
 <?php
-// Dj'aki mi ta! staff: review the one-time "born in Curaçao" checks.
+// Staff backend: login and overview.
 require __DIR__ . '/../../app/bootstrap.php';
 header('X-Robots-Tag: noindex, nofollow');
 header('Cache-Control: no-store');
-
-$reasons = [
-    'unreadable' => 'The passport photo is not readable. Please take a new photo in good light, with all text sharp.',
-    'birthplace' => 'The passport does not show Curaçao as the place of birth.',
-    'face' => 'The selfie is not clear. Please take a new one with your face fully visible.',
-    'mismatch' => 'The name or date of birth does not match the passport.',
-    'missing' => 'We need the passport page of at least one parent born in Curaçao.',
-];
+header('X-Frame-Options: DENY');
 
 $msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_check()) {
         $msg = 'Session expired, please try again.';
     } elseif (($_POST['action'] ?? '') === 'login') {
-        if (!admin_login(trim((string) ($_POST['user'] ?? '')), (string) ($_POST['pass'] ?? ''))) {
-            $msg = 'Wrong username or password.';
+        $u = trim((string) ($_POST['user'] ?? ''));
+        if (admin_login($u, (string) ($_POST['pass'] ?? ''))) {
+            admin_log('login');
+            header('Location: /admin/');
+            exit;
         }
+        $msg = 'Wrong username or password. After 5 wrong tries, logging in is blocked for 30 minutes.';
     } elseif (($_POST['action'] ?? '') === 'logout') {
         unset($_SESSION['admin']);
         session_regenerate_id(true);
-    } elseif (admin_user() && ($_POST['action'] ?? '') === 'partner_done') {
-        db()->prepare('UPDATE partner_applications SET status = 1 WHERE id = :id')->execute(['id' => (int) ($_POST['id'] ?? 0)]);
-        $msg = 'Marked as handled.';
-    } elseif (admin_user() && in_array($_POST['action'] ?? '', ['approve', 'reject'], true)) {
-        $approve = $_POST['action'] === 'approve';
-        $note = $approve ? '' : trim(($reasons[$_POST['reason'] ?? ''] ?? '') . ' ' . trim((string) ($_POST['note'] ?? '')));
-        if (!$approve && $note === '') {
-            $msg = 'Pick a reason so the customer knows what to fix.';
-        } else {
-            $v = review_verification((int) ($_POST['id'] ?? 0), $approve, admin_user(), $note);
-            if ($v) {
-                notify_if_order_reviewed((int) $v['order_id']);
-                $msg = ($approve ? 'Approved: ' : 'Sent back: ') . $v['name'];
-            }
-        }
+        header('Location: /admin/');
+        exit;
     }
-    $_SESSION['admin_msg'] = $msg;
-    header('Location: /admin/');
-    exit;
-}
-$msg = $_SESSION['admin_msg'] ?? '';
-unset($_SESSION['admin_msg']);
-
-/** When nothing of an order is waiting anymore, email the customer the result once. */
-function notify_if_order_reviewed(int $orderId): void
-{
-    $st = db()->prepare('SELECT * FROM holder_verifications WHERE order_id = :o');
-    $st->execute(['o' => $orderId]);
-    $all = $st->fetchAll();
-    if (!$all || array_filter($all, fn($v) => (int) $v['status'] === VERIFY_PENDING)) {
-        return;
-    }
-    $em = db()->prepare('SELECT email FROM sale_receits WHERE id = :o');
-    $em->execute(['o' => $orderId]);
-    $email = (string) $em->fetchColumn();
-    if ($email === '') {
-        return;
-    }
-    $ok = array_filter($all, fn($v) => (int) $v['status'] === VERIFY_APPROVED);
-    $bad = array_filter($all, fn($v) => (int) $v['status'] === VERIFY_REJECTED);
-    $body = '';
-    if ($ok) {
-        $body .= '<p><strong>Verified:</strong> ' . e(implode(', ', array_column($ok, 'name'))) . '. You can now scan at every partner, no passport needed.</p>';
-    }
-    foreach ($bad as $v) {
-        $body .= '<p><strong>' . e($v['name']) . ':</strong> ' . e((string) $v['note']) . '</p>';
-    }
-    if ($bad) {
-        $body .= '<p><a href="' . e(verify_link($orderId)) . '" style="display:inline-block;background:#187c19;color:#fff;padding:10px 20px;border-radius:999px;text-decoration:none;font-weight:bold">Send new photos</a></p>';
-    }
-    $html = '<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#17221a">'
-        . '<div style="background:#187c19;color:#fff;padding:20px 24px;border-radius:12px 12px 0 0;font-size:22px;font-weight:bold">Dj\'aki mi ta!</div>'
-        . '<div style="border:1px solid #dfe7dc;border-top:0;padding:24px;border-radius:0 0 12px 12px">'
-        . '<h1 style="font-size:20px;margin:0 0 12px">' . ($bad ? 'Your card check: one more thing' : 'Your card is verified') . '</h1>'
-        . $body . '<p style="color:#4f5d52;font-size:13px">We deleted the passport photos after the check. Questions? contact@djakimita.com</p></div></div>';
-    brevo_send($email, $bad ? "Dj'aki mi ta!: please send a new photo" : "Dj'aki mi ta!: your card is verified", $html);
 }
 
-$user = admin_user();
-$queue = [];
-$recent = [];
-$apps = [];
-if ($user) {
-    $queue = db()->query('SELECT v.*, c.email, s.package FROM holder_verifications v
-                          JOIN clients c ON c.id = v.client_id
-                          LEFT JOIN sale_receits s ON s.id = v.order_id
-                          WHERE v.status = 0 ORDER BY v.submitted_at, v.order_id, v.id')->fetchAll();
-    $apps = db()->query('SELECT * FROM partner_applications WHERE status = 0 ORDER BY created_at DESC LIMIT 50')->fetchAll();
-    $recent = db()->query('SELECT name, status, note, reviewed_at, reviewed_by FROM holder_verifications
-                           WHERE status <> 0 ORDER BY reviewed_at DESC LIMIT 15')->fetchAll();
-}
-$groups = [];
-foreach ($queue as $v) {
-    $groups[$v['order_id']][] = $v;
-}
-?>
+if (!admin_user()) {
+    ?>
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <title>Card checks · Dj'aki mi ta! admin</title>
+  <title>Staff login · Dj'aki mi ta!</title>
   <link rel="icon" href="/assets/img/logo-mark.png">
-  <link rel="preload" href="/assets/fonts/bricolage-grotesque-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/assets/css/site.css?v=<?= (int) @filemtime(__DIR__ . '/../assets/css/site.css') ?>">
+  <link rel="stylesheet" href="/assets/css/site.css">
+  <style>
+    body { background: #0f3d14; min-height: 100vh; display: grid; place-items: center; margin: 0; }
+    .lg { background: #fff; border-radius: 20px; padding: 30px 28px; width: min(380px, 92vw); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+    .lg img { display: block; margin: 0 auto 10px; }
+    .lg h1 { text-align: center; font-size: 1.4rem; margin: 0 0 18px; }
+    .lg .err { background: #fde7e4; color: #8a2216; padding: 10px 12px; border-radius: 10px; font-size: .9rem; }
+  </style>
 </head>
-<body class="admin">
-<header class="nav">
-  <div class="wrap nav-in">
-    <span class="brand"><img src="/assets/img/logo-mark.png" alt="" width="40" height="40"><span class="brand-name">Card checks</span></span>
-    <?php if ($user): ?>
-      <form method="post" class="nav-right"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <span class="muted small"><?= e($user) ?></span>
-        <button class="btn btn-sm btn-outline" name="action" value="logout">Log out</button></form>
-    <?php endif; ?>
-  </div>
-</header>
-<main class="section pt-sm" id="main">
-  <div class="wrap">
-    <?php if ($msg): ?><p class="notice"><?= e($msg) ?></p><?php endif; ?>
-
-    <?php if (!$user): ?>
-      <form method="post" class="admin-login">
-        <h1 class="h3">Staff login</h1>
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="action" value="login">
-        <div class="field"><label for="u">Username</label><input id="u" name="user" autocomplete="username" required></div>
-        <div class="field"><label for="p">Password</label><input id="p" name="pass" type="password" autocomplete="current-password" required></div>
-        <button class="btn btn-block">Log in</button>
-      </form>
-    <?php else: ?>
-      <h1 class="co-h1">Waiting for a check <span class="count"><?= count($queue) ?></span></h1>
-      <p class="muted">Compare the passport with the name and birthdate, check the place of birth says Curaçao, and that the selfie is a clear face. The passport photo is deleted as soon as you click Approve or Send back.</p>
-
-      <?php if (!$groups): ?>
-        <div class="ok-box"><?= icon('check', 20) ?> All done. Nothing waiting.</div>
-      <?php endif; ?>
-
-      <?php foreach ($groups as $orderId => $people): $fam = is_family_package((int) $people[0]['package']); ?>
-        <section class="rv-order">
-          <h2 class="h3">Order #<?= (int) $orderId ?> <span class="muted small"><?= e($people[0]['email']) ?> · <?= e(package_label((int) $people[0]['package'])) ?> card</span></h2>
-          <?php if ($fam): ?><p class="hint">Family card: children can be approved when a parent's passport shows Curaçao.</p><?php endif; ?>
-          <?php foreach ($people as $v): ?>
-            <article class="rv-person">
-              <div class="rv-photos">
-                <figure><img src="/admin/photo.php?f=<?= e($v['face_file']) ?>" alt="Selfie of <?= e($v['name']) ?>" loading="lazy"><figcaption>Selfie</figcaption></figure>
-                <?php if ($v['id_file']): ?>
-                  <figure class="rv-id"><a href="/admin/photo.php?f=<?= e($v['id_file']) ?>" target="_blank"><img src="/admin/photo.php?f=<?= e($v['id_file']) ?>" alt="Passport of <?= e($v['name']) ?>" loading="lazy"></a><figcaption>Passport (click to enlarge)</figcaption></figure>
-                <?php else: ?>
-                  <figure class="rv-noid"><span>No passport sent</span></figure>
-                <?php endif; ?>
-              </div>
-              <div class="rv-info">
-                <p class="rv-name"><?= e($v['name']) ?></p>
-                <p>Born <strong><?= e(date('d-m-Y', strtotime($v['birthdate']))) ?></strong> · age <?= (int) date_diff(date_create($v['birthdate']), date_create('today'))->y ?></p>
-                <p class="muted small">Sent <?= e(date('d-m-Y H:i', strtotime($v['submitted_at']))) ?></p>
-                <form method="post" class="rv-actions">
-                  <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                  <input type="hidden" name="id" value="<?= (int) $v['id'] ?>">
-                  <button class="btn" name="action" value="approve"><?= icon('check', 18) ?> Approve</button>
-                  <details>
-                    <summary class="btn btn-outline">Send back</summary>
-                    <div class="rv-reject">
-                      <?php foreach ($reasons as $k => $text): ?>
-                        <label class="check"><input type="radio" name="reason" value="<?= e($k) ?>"> <span><?= e($text) ?></span></label>
-                      <?php endforeach; ?>
-                      <div class="field"><label for="n<?= (int) $v['id'] ?>">Extra note (optional, the customer sees this)</label><input id="n<?= (int) $v['id'] ?>" name="note" maxlength="120"></div>
-                      <button class="btn btn-danger" name="action" value="reject">Send back to customer</button>
-                    </div>
-                  </details>
-                </form>
-              </div>
-            </article>
-          <?php endforeach; ?>
-        </section>
-      <?php endforeach; ?>
-
-      <h2 class="h3 mt">New partner applications <span class="count"><?= count($apps) ?></span></h2>
-      <?php if (!$apps): ?><p class="muted">No new applications.</p><?php endif; ?>
-      <?php foreach ($apps as $a): ?>
-        <article class="rv-order rv-app">
-          <h3 class="h3"><?= e($a['company']) ?> <span class="muted small">KvK <?= e($a['reg_number']) ?> · <?= e(date('d-m-Y H:i', strtotime($a['created_at']))) ?></span></h3>
-          <p><strong><?= e($a['contact_name']) ?></strong> · <a href="mailto:<?= e($a['email']) ?>"><?= e($a['email']) ?></a><?= $a['phone'] ? ' · ' . e($a['phone']) : '' ?><?= $a['website'] ? ' · ' . e($a['website']) : '' ?><?= $a['category'] ? ' · ' . e(t('bp.cat.' . $a['category'])) : '' ?></p>
-          <p class="rv-offer"><?= nl2br(e($a['offer'])) ?></p>
-          <form method="post"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
-            <button class="btn btn-sm btn-outline" name="action" value="partner_done"><?= icon('check', 16) ?> Mark as handled</button></form>
-        </article>
-      <?php endforeach; ?>
-
-      <?php if ($recent): ?>
-        <h2 class="h3 mt">Recently checked</h2>
-        <table class="rv-recent">
-          <thead><tr><th>Name</th><th>Result</th><th>By</th><th>When</th></tr></thead>
-          <tbody>
-          <?php foreach ($recent as $r): ?>
-            <tr><td><?= e($r['name']) ?></td>
-                <td><?= (int) $r['status'] === VERIFY_APPROVED ? '<span class="tag tag-ok">Approved</span>' : '<span class="tag tag-bad">Sent back</span>' ?></td>
-                <td><?= e($r['reviewed_by']) ?></td><td><?= e(date('d-m H:i', strtotime((string) $r['reviewed_at']))) ?></td></tr>
-          <?php endforeach; ?>
-          </tbody>
-        </table>
-      <?php endif; ?>
-    <?php endif; ?>
-  </div>
-</main>
+<body>
+  <form method="post" class="lg">
+    <img src="/assets/img/logo-mark.png" alt="" width="64" height="64">
+    <h1>Dj'aki mi ta! admin</h1>
+    <?php if ($msg): ?><p class="err"><?= e($msg) ?></p><?php endif; ?>
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="login">
+    <div class="field"><label for="u">Username</label><input id="u" name="user" autocomplete="username" required autofocus></div>
+    <div class="field"><label for="p">Password</label><input id="p" name="pass" type="password" autocomplete="current-password" required></div>
+    <button class="btn btn-block">Log in</button>
+  </form>
 </body>
 </html>
+    <?php
+    exit;
+}
+
+$me = admin_page();
+$db = db();
+
+$paid = $db->query("SELECT LOWER(currency) cur, COUNT(DISTINCT token) orders FROM sale_receits WHERE status = 1 AND dia_orario >= CURDATE() - INTERVAL 30 DAY GROUP BY LOWER(currency)")->fetchAll();
+$today = (int) $db->query('SELECT COUNT(DISTINCT token) FROM sale_receits WHERE status = 1 AND DATE(dia_orario) = CURDATE()')->fetchColumn();
+$week = (int) $db->query('SELECT COUNT(DISTINCT token) FROM sale_receits WHERE status = 1 AND dia_orario >= CURDATE() - INTERVAL 7 DAY')->fetchColumn();
+$activeCards = (int) $db->query('SELECT COUNT(*) FROM clients_package WHERE expire >= CURDATE()')->fetchColumn();
+$customers = (int) $db->query('SELECT COUNT(*) FROM clients')->fetchColumn();
+$partners = (int) $db->query('SELECT COUNT(*) FROM voucher_company WHERE active = 1 AND country = 1')->fetchColumn();
+$checks = (int) $db->query('SELECT COUNT(*) FROM holder_verifications WHERE status = 0')->fetchColumn();
+$apps = (int) $db->query('SELECT COUNT(*) FROM partner_applications WHERE status = 0')->fetchColumn();
+$unpaid = (int) $db->query('SELECT COUNT(DISTINCT token) FROM sale_receits WHERE status = 0 AND dia_orario >= NOW() - INTERVAL 2 DAY')->fetchColumn();
+
+// Money in the last 30 days, per currency (from the card prices of paid orders)
+$money = $db->query("SELECT LOWER(s.currency) cur,
+        SUM(CASE WHEN LOWER(s.currency) = 'xcg' THEN COALESCE(l.xcg, 0) WHEN LOWER(s.currency) = 'usd' THEN COALESCE(l.usd, p.dollars, 0) ELSE COALESCE(l.eur, p.eur, 0) END) total
+    FROM sale_receits s
+    LEFT JOIN sale_lengths sl ON sl.sale_id = s.id
+    LEFT JOIN card_lengths l ON l.id = sl.length_id
+    LEFT JOIN website_product_prices p ON p.product_id = s.package AND sl.sale_id IS NULL
+    WHERE s.status = 1 AND s.dia_orario >= CURDATE() - INTERVAL 30 DAY
+    GROUP BY LOWER(s.currency)")->fetchAll();
+
+$recent = $db->query("SELECT s.token, MIN(s.id) id, MIN(s.email) email, MIN(s.currency) currency, MAX(s.status) status, MIN(s.dia_orario) d,
+        GROUP_CONCAT(s.package ORDER BY s.id) packages
+    FROM sale_receits s WHERE s.token IS NOT NULL AND s.token <> ''
+    GROUP BY s.token ORDER BY MIN(s.id) DESC LIMIT 10")->fetchAll();
+
+$launch = (string) setting('launch_at', (string) config('launch_at', ''));
+
+admin_head('Overview', 'index');
+?>
+<h1>Good <?= (int) date('G') < 12 ? 'morning' : ((int) date('G') < 18 ? 'afternoon' : 'evening') ?>, <?= e($me) ?></h1>
+
+<?php if ($checks || $apps): ?>
+  <p class="ad-flash ok"><a href="/admin/checks.php"><?= $checks ?> card check<?= $checks === 1 ? '' : 's' ?> and <?= $apps ?> partner application<?= $apps === 1 ? '' : 's' ?> waiting →</a></p>
+<?php endif; ?>
+
+<div class="ad-cards">
+  <div class="ad-card"><b><?= $today ?></b><span>Paid orders today</span></div>
+  <div class="ad-card"><b><?= $week ?></b><span>Paid orders, last 7 days</span></div>
+  <?php foreach ($money as $m): ?>
+    <div class="ad-card"><b><?= e(admin_money((float) $m['total'], $m['cur'] ?: 'eur')) ?></b><span>Sales last 30 days<?= $m['cur'] ? '' : ' (old orders)' ?></span></div>
+  <?php endforeach; ?>
+  <div class="ad-card"><b><?= $activeCards ?></b><span>Active cards</span></div>
+  <div class="ad-card"><b><?= $customers ?></b><span>Customer accounts</span></div>
+  <div class="ad-card"><b><?= $partners ?></b><span>Active partners (Curaçao)</span></div>
+  <div class="ad-card"><b><?= $unpaid ?></b><span>Started but not paid (48 h)</span></div>
+</div>
+
+<?php if ($launch && strtotime($launch) > time()): ?>
+  <p class="ad-muted">The website shows the countdown until <strong><?= e(admin_date($launch, true)) ?></strong>. Change it under <a href="/admin/settings.php">Settings</a>.</p>
+<?php endif; ?>
+
+<h2>Latest orders</h2>
+<div class="ad-wrap">
+<table class="ad-table">
+  <thead><tr><th>Order</th><th>Date</th><th>Email</th><th>Cards</th><th>Paid with</th><th>Status</th></tr></thead>
+  <tbody>
+  <?php foreach ($recent as $o): ?>
+    <tr>
+      <td><a href="/admin/orders.php?id=<?= (int) $o['id'] ?>">#<?= (int) $o['id'] ?></a></td>
+      <td><?= e(admin_date($o['d'], true)) ?></td>
+      <td><?= e($o['email']) ?></td>
+      <td><?= e(implode(', ', array_map(fn($p) => card_name((int) $p), explode(',', (string) $o['packages'])))) ?></td>
+      <td><?= e(str_starts_with((string) $o['token'], 'sentoo:') ? 'Sentoo' : (str_starts_with((string) $o['token'], 'tr_') ? 'Mollie' : 'Stripe (old)')) ?> · <?= e(strtoupper($o['currency'] ?: 'eur')) ?></td>
+      <td><?= (int) $o['status'] === 1 ? '<span class="ad-tag ok">Paid</span>' : '<span class="ad-tag wait">Not paid</span>' ?></td>
+    </tr>
+  <?php endforeach; ?>
+  </tbody>
+</table>
+</div>
+<p><a href="/admin/orders.php">All orders →</a></p>
+<?php admin_foot();

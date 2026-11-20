@@ -163,11 +163,28 @@ function admin_login(string $user, string $pass): bool
     } catch (Throwable $e) {
         // table missing: fall back to the delay below
     }
-    $users = (array) config('admin_users', []);
-    $hash = $users[$user] ?? null;
+    // Staff accounts live in the admin_users table. Until the first one exists, config.local.php is used.
+    $hash = null;
+    $fromDb = false;
+    try {
+        if ((int) db()->query('SELECT COUNT(*) FROM admin_users')->fetchColumn() > 0) {
+            $fromDb = true;
+            $st = db()->prepare('SELECT pass_hash FROM admin_users WHERE username = :u AND active = 1');
+            $st->execute(['u' => $user]);
+            $hash = $st->fetchColumn() ?: null;
+        }
+    } catch (Throwable $e) {
+    }
+    if (!$fromDb) {
+        $users = (array) config('admin_users', []);
+        $hash = $users[$user] ?? null;
+    }
     if ($hash && password_verify($pass, $hash)) {
         session_regenerate_id(true);
         $_SESSION['admin'] = $user;
+        if ($fromDb) {
+            db()->prepare('UPDATE admin_users SET last_login = NOW() WHERE username = :u')->execute(['u' => $user]);
+        }
         return true;
     }
     try {

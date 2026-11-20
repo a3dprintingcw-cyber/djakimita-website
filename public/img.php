@@ -22,12 +22,13 @@ $cacheFile = sprintf('%s/%s%d-%s.jpg', $cacheDir, $imageId ? 'i' : 'c', $imageId
 
 if (!is_file($cacheFile)) {
     if ($imageId) {
+        // Staff also see photos of partners that are switched off.
         $st = db()->prepare('SELECT i.image_blob AS data FROM voucher_company_images i
-                             JOIN voucher_company v ON v.id = i.company_id AND v.active = 1
+                             JOIN voucher_company v ON v.id = i.company_id' . (admin_user() ? '' : ' AND v.active = 1') . '
                              WHERE i.id = :id');
         $st->execute(['id' => $imageId]);
     } else {
-        $st = db()->prepare('SELECT picture AS data FROM voucher_company WHERE id = :id AND active = 1');
+        $st = db()->prepare('SELECT picture AS data FROM voucher_company WHERE id = :id' . (admin_user() ? '' : ' AND active = 1'));
         $st->execute(['id' => $companyId]);
     }
     $data = $st->fetchColumn();

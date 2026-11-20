@@ -108,6 +108,7 @@ require __DIR__ . '/data.php';
 require __DIR__ . '/layout.php';
 require __DIR__ . '/payments.php';
 require __DIR__ . '/verify.php';
+require __DIR__ . '/admin.php';
 require __DIR__ . '/countdown.php';
 
 countdown_gate();
