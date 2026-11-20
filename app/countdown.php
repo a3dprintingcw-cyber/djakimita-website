@@ -21,6 +21,7 @@ const COUNTDOWN_OPEN = [
     'checkout.php', 'pay.php', 'done.php', 'verify.php', 'mollie-webhook.php', 'stripe-webhook.php',
     'login.php', 'account.php', 'set-password.php', 'forgot-password.php', 'deletedata.php',
     'termsandconditions.php', 'privacy_policy.php', 'img.php', 'robots.txt',
+    'partners.php', 'partner.php',
 ];
 
 function countdown_texts(): array
@@ -36,6 +37,7 @@ function countdown_texts(): array
             'live' => 'We\'re live! Loading the new site...',
             'login' => 'Already a member? Log in',
             'follow' => 'Follow us so you don\'t miss the launch',
+            'partners' => 'See our partners',
         ],
         'nl' => [
             'kicker' => 'Er komt iets nieuws aan',
@@ -47,6 +49,7 @@ function countdown_texts(): array
             'live' => 'We zijn live! De nieuwe site wordt geladen...',
             'login' => 'Al lid? Log in',
             'follow' => 'Volg ons en mis de lancering niet',
+            'partners' => 'Bekijk onze partners',
         ],
         'pap' => [
             'kicker' => 'Algu nobo ta bini',
@@ -58,6 +61,7 @@ function countdown_texts(): array
             'live' => 'Nos ta live! E website nobo ta kargando...',
             'login' => 'Kaba ta miembro? Log in',
             'follow' => 'Sigui nos pa bo no pèrdè e lansamentu',
+            'partners' => 'Mira nos partnernan',
         ],
     ];
     return $all[current_lang()] ?? $all['en'];
@@ -104,6 +108,9 @@ function render_countdown(): void
     .cd-cta { display: inline-flex; align-items: center; gap: 10px; background: var(--gold); color: var(--green-ink); font-weight: 700;
       font-size: clamp(1rem, 2.2vh, 1.15rem); padding: clamp(11px, 1.8vh, 16px) 28px; border-radius: 999px; text-decoration: none; box-shadow: 0 8px 24px rgba(0,0,0,.25); transition: transform .15s; }
     .cd-cta:hover { color: var(--green-ink); transform: translateY(-2px); }
+    .cd-partners { display: inline-flex; align-items: center; gap: 8px; color: #fff; font-weight: 700; font-size: clamp(.95rem, 2vh, 1.05rem);
+      border: 1.5px solid rgba(255,255,255,.7); border-radius: 999px; padding: clamp(7px, 1.2vh, 11px) 22px; text-decoration: none; }
+    .cd-partners:hover { color: var(--green-ink); background: #fff; }
     .cd-note { font-size: clamp(.75rem, 1.6vh, .9rem); opacity: .85; margin: 0; max-width: 420px; }
     .cd-foot { display: flex; flex-wrap: wrap; gap: 6px 18px; justify-content: center; align-items: center; font-size: clamp(.78rem, 1.7vh, .92rem); }
     .cd-foot a { color: #fff; opacity: .9; }
@@ -141,6 +148,8 @@ function render_countdown(): void
 
     <a class="cd-cta" href="/checkout.php"><?= e($c['cta']) ?> <?= icon('arrow', 20) ?></a>
     <p class="cd-note"><?= e($c['note']) ?></p>
+
+    <a class="cd-partners" href="/partners.php"><?= e($c['partners']) ?> <?= icon('arrow', 18) ?></a>
 
     <div class="cd-foot">
       <a href="/login.php"><?= e($c['login']) ?></a>

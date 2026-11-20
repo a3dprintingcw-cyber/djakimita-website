@@ -82,6 +82,7 @@ function page_header(string $title, string $active = '', string $description = '
     <?php if (function_exists('before_launch') && before_launch()): ?>
     <div class="nav-right">
       <a class="login" href="<?= current_client() ? '/account.php' : '/login.php' ?>"><?= e(t(current_client() ? 'ac.title' : 'nav.login')) ?></a>
+      <?php if (basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) !== 'checkout.php'): ?><a class="btn btn-sm" href="/checkout.php"><?= e(countdown_texts()['cta']) ?></a><?php endif; ?>
     </div>
     <?php else: ?>
     <nav class="links" id="nav-menu" aria-label="Main">
