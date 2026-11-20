@@ -35,6 +35,7 @@ function countdown_texts(): array
             'note' => 'Pre-ordered cards start on launch day, so you don\'t lose a single day.',
             'live' => 'We\'re live! Loading the new site...',
             'login' => 'Already a member? Log in',
+            'follow' => 'Follow us so you don\'t miss the launch',
         ],
         'nl' => [
             'kicker' => 'Er komt iets nieuws aan',
@@ -45,6 +46,7 @@ function countdown_texts(): array
             'note' => 'Vooraf bestelde kaarten gaan in op de lanceerdag, je mist dus geen enkele dag.',
             'live' => 'We zijn live! De nieuwe site wordt geladen...',
             'login' => 'Al lid? Log in',
+            'follow' => 'Volg ons en mis de lancering niet',
         ],
         'pap' => [
             'kicker' => 'Algu nobo ta bini',
@@ -55,6 +57,7 @@ function countdown_texts(): array
             'note' => 'Karchinan pre-ordená ta kuminsá dia di lansamentu, asina bo no ta pèrdè ni un dia.',
             'live' => 'Nos ta live! E website nobo ta kargando...',
             'login' => 'Kaba ta miembro? Log in',
+            'follow' => 'Sigui nos pa bo no pèrdè e lansamentu',
         ],
     ];
     return $all[current_lang()] ?? $all['en'];
@@ -104,6 +107,13 @@ function render_countdown(): void
     .cd-note { font-size: .92rem; opacity: .85; margin: 14px auto 0; max-width: 440px; }
     .cd-foot { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 14px 22px; justify-content: center; align-items: center; font-size: .92rem; }
     .cd-foot a { color: #fff; opacity: .9; }
+    .cd-follow { margin-top: 30px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.2); }
+    .cd-follow-t { font-weight: 700; margin-bottom: 12px; }
+    .cd-brands { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 18px; }
+    .cd-brand { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 6px 8px 6px 16px; }
+    .cd-brand span { font-weight: 700; margin-right: 4px; }
+    .cd-brand a { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; color: #fff; }
+    .cd-brand a:hover { background: rgba(255,255,255,.18); color: #fff; }
     @media (max-width: 520px) { .cd-logo { width: 150px; border-radius: 22px; } .cd-mascot { height: 190px; } .cd-top { gap: 12px; margin-bottom: 16px; } }
     @media (max-width: 420px) { .cd-clock { gap: 6px; } .cd-lbl { font-size: .68rem; letter-spacing: .03em; } }
   </style>
@@ -137,9 +147,26 @@ function render_countdown(): void
     <a class="cd-cta" href="/checkout.php"><?= e($c['cta']) ?> <?= icon('arrow', 20) ?></a>
     <p class="cd-note"><?= e($c['note']) ?></p>
 
+    <div class="cd-follow">
+      <p class="cd-follow-t"><?= e($c['follow']) ?></p>
+      <div class="cd-brands">
+        <div class="cd-brand">
+          <span>Dj'aki mi ta!</span>
+          <a href="https://www.instagram.com/djakimita/" rel="noopener" aria-label="Dj'aki mi ta! on Instagram"><?= icon('instagram', 22) ?></a>
+          <a href="https://www.facebook.com/share/1ZT1D2dMHx/" rel="noopener" aria-label="Dj'aki mi ta! on Facebook"><?= icon('facebook', 22) ?></a>
+          <a href="https://www.tiktok.com/@djakimita.cw" rel="noopener" aria-label="Dj'aki mi ta! on TikTok"><?= icon('tiktok', 22) ?></a>
+        </div>
+        <div class="cd-brand">
+          <span>Rib'e luga!</span>
+          <a href="https://www.instagram.com/ribeluga/" rel="noopener" aria-label="Rib'e luga! on Instagram"><?= icon('instagram', 22) ?></a>
+          <a href="https://www.facebook.com/profile.php?id=61578003292607" rel="noopener" aria-label="Rib'e luga! on Facebook"><?= icon('facebook', 22) ?></a>
+          <a href="https://www.tiktok.com/@ribeluga" rel="noopener" aria-label="Rib'e luga! on TikTok"><?= icon('tiktok', 22) ?></a>
+        </div>
+      </div>
+    </div>
+
     <div class="cd-foot">
       <a href="/login.php"><?= e($c['login']) ?></a>
-      <a href="https://www.instagram.com/djakimita/" rel="noopener" aria-label="Instagram"><?= icon('instagram', 20) ?></a>
     </div>
   </div>
 </main>
