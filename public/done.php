@@ -13,17 +13,17 @@ if (!$rows) {
     exit;
 }
 
-// Activate right away if Stripe already confirms (the webhook does the same; whichever is first wins).
+// Activate right away if the payment provider already confirms (the webhook does the same; whichever is first wins).
 $state = 'pending';
 if ((int) $rows[0]['status'] === 1) {
     $state = 'paid';
-} elseif (stripe_ready()) {
+} elseif (payments_ready()) {
     try {
-        $intent = stripe('GET', 'payment_intents/' . rawurlencode($rows[0]['token']));
-        if ($intent['status'] === 'succeeded') {
+        $pay = payment_status((string) $rows[0]['token']);
+        if ($pay['state'] === 'paid') {
             fulfill_payment_intent($rows[0]['token']);
             $state = 'paid';
-        } elseif (in_array($intent['status'], ['requires_payment_method', 'canceled'], true)) {
+        } elseif ($pay['state'] === 'failed') {
             $state = 'failed';
         }
     } catch (Throwable $ex) {

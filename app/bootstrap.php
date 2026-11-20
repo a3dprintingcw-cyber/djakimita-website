@@ -26,8 +26,9 @@ date_default_timezone_set('America/Curacao');
 // ---------------------------------------------------------------------------
 // Preview lock (hidden until launch)
 // ---------------------------------------------------------------------------
-// The Stripe webhook is exempt: Stripe can't log in, and every call is signature-checked.
-$isWebhook = basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) === 'stripe-webhook.php';
+// The payment webhooks are exempt: the provider can't log in. Stripe calls are signature-checked;
+// Mollie only sends a payment id, which we look up at Mollie ourselves.
+$isWebhook = in_array(basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')), ['stripe-webhook.php', 'mollie-webhook.php'], true);
 if (config('preview_pass') && !$isWebhook) {
     header('X-Robots-Tag: noindex, nofollow');
     $u = $_SERVER['PHP_AUTH_USER'] ?? '';
@@ -104,4 +105,7 @@ require __DIR__ . '/data.php';
 require __DIR__ . '/layout.php';
 require __DIR__ . '/payments.php';
 require __DIR__ . '/verify.php';
+require __DIR__ . '/countdown.php';
+
+countdown_gate();
 require __DIR__ . '/account.php';

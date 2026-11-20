@@ -20,7 +20,11 @@ return [
     'app_secret' => '',
 
     // First day of the new website: only orders from then on get "verify your card" reminders.
-    'reminders_since' => '2026-12-01',
+    'reminders_since' => '2026-11-20',
+
+    // Mollie (Dashboard > Developers > API keys). When set, Mollie is used instead of Stripe.
+    // Webhook needs no setup: every payment tells Mollie to call /mollie-webhook.php.
+    'mollie_api_key' => '',
 
     // Stripe (Dashboard > Developers > API keys). Use test keys on the preview.
     'stripe_publishable_key' => '',
@@ -31,6 +35,13 @@ return [
     'brevo_api_key' => '',
     'mail_from'     => 'contact@djakimita.com',
     'mail_from_name' => "Dj'aki mi ta!",
+
+    // Countdown: until this moment (Curaçao time) djakimita.com shows the countdown page with a
+    // pre-order button; checkout, payment, login and legal pages stay open. Then the full site
+    // opens by itself. Empty = no countdown.
+    'launch_at' => '2026-12-01 00:00:00',
+    // Secret word so staff can see the full site early: djakimita.com/?peek=<word>
+    'countdown_peek' => '',
 
     // Preview lock: while set, the whole site asks for this login and is hidden
     // from search engines. Leave empty on launch day to go public.

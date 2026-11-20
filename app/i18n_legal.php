@@ -61,7 +61,7 @@ function legal_text(string $page, string $lang): array
             'Each partner decides its own discount. Discounts and partners can change. A discount has no cash value and cannot be combined with other offers unless the partner says so.',
         ]],
         ['6. Prices and payment', [
-            'Prices are shown on the website in euro or US dollar. Payment is handled by Stripe. We never see or store your full card details.',
+            'Prices are shown on the website in euro or US dollar. Payment is handled by Mollie. We never see or store your full card details.',
         ]],
         ['7. No refunds', [
             'Once bought, a card cannot be cancelled or refunded, except where the law says otherwise.',
@@ -103,7 +103,7 @@ function legal_text(string $page, string $lang): array
             'Elke partner bepaalt zijn eigen korting. Kortingen en partners kunnen veranderen. Een korting heeft geen geldwaarde en is niet te combineren met andere acties, tenzij de partner dat aangeeft.',
         ]],
         ['6. Prijzen en betaling', [
-            'Prijzen staan op de website in euro of Amerikaanse dollar. De betaling loopt via Stripe. Wij zien en bewaren nooit je volledige kaartgegevens.',
+            'Prijzen staan op de website in euro of Amerikaanse dollar. De betaling loopt via Mollie. Wij zien en bewaren nooit je volledige kaartgegevens.',
         ]],
         ['7. Geen terugbetaling', [
             'Een gekochte kaart kan niet geannuleerd of terugbetaald worden, behalve als de wet anders bepaalt.',
@@ -130,7 +130,7 @@ function legal_text(string $page, string $lang): array
             'Your account: name, email address, and your phone number if you order an eSIM.',
             'Card holders: name and date of birth of each person on a card.',
             'The one-time check: a selfie and a photo of the passport page of each card holder.',
-            'Orders: what you bought, when, and the payment status. Stripe processes the payment; we never receive your full card number.',
+            'Orders: what you bought, when, and the payment status. Mollie processes the payment; we never receive your full card number.',
             'Use of the card: which partner you scanned and when.',
             'Website: your IP address in our server logs, and two small cookies (one to keep you logged in during your visit, one to remember your language). We do not use advertising or tracking cookies.',
         ]],
@@ -142,7 +142,7 @@ function legal_text(string $page, string $lang): array
             'The selfie is kept while your card or account exists, because the partner sees it on the screen when you scan.',
         ]],
         ['5. Who we share it with', [
-            'Stripe (payments), Brevo (sending emails) and our hosting provider. They only process data for us.',
+            'Mollie (payments), Brevo (sending emails) and our hosting provider. They only process data for us.',
             'Flow, only if you order an eSIM: your phone number and email.',
             'Partners: when you scan, the partner sees your photo, name and that your card is valid on your screen. Partners do not receive your other data.',
             'Authorities, only when the law requires it. We never sell your data.',
@@ -173,7 +173,7 @@ function legal_text(string $page, string $lang): array
             'Je account: naam, e-mailadres, en je telefoonnummer als je een eSIM bestelt.',
             'Kaarthouders: naam en geboortedatum van elke persoon op een kaart.',
             'De eenmalige controle: een selfie en een foto van de paspoortpagina van elke kaarthouder.',
-            'Bestellingen: wat je kocht, wanneer, en de betaalstatus. Stripe verwerkt de betaling; wij ontvangen nooit je volledige kaartnummer.',
+            'Bestellingen: wat je kocht, wanneer, en de betaalstatus. Mollie verwerkt de betaling; wij ontvangen nooit je volledige kaartnummer.',
             'Gebruik van de kaart: welke partner je scande en wanneer.',
             'Website: je IP-adres in onze serverlogs, en twee kleine cookies (één om je ingelogd te houden tijdens je bezoek, één om je taal te onthouden). Wij gebruiken geen advertentie- of trackingcookies.',
         ]],
@@ -185,7 +185,7 @@ function legal_text(string $page, string $lang): array
             'De selfie bewaren we zolang je kaart of account bestaat, omdat de partner hem op het scherm ziet als je scant.',
         ]],
         ['5. Met wie wij het delen', [
-            'Stripe (betalingen), Brevo (e-mails versturen) en onze hostingpartij. Zij verwerken gegevens alleen voor ons.',
+            'Mollie (betalingen), Brevo (e-mails versturen) en onze hostingpartij. Zij verwerken gegevens alleen voor ons.',
             'Flow, alleen als je een eSIM bestelt: je telefoonnummer en e-mailadres.',
             'Partners: als je scant, ziet de partner op jouw scherm je foto, naam en dat je kaart geldig is. Partners krijgen je andere gegevens niet.',
             'Overheid, alleen als de wet dat verplicht. Wij verkopen je gegevens nooit.',

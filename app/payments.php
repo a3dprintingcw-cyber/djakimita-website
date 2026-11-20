@@ -1,5 +1,5 @@
 <?php
-// Orders, Stripe payments, card activation and email.
+// Orders, payments (Mollie or Stripe), card activation and email.
 // Writes to the same tables the app and the dashboard already use:
 //   clients, sale_receits, clients_package, client_package_customers, esim
 
@@ -99,6 +99,103 @@ function stripe_verify_webhook(string $payload, string $header, int $tolerance =
 }
 
 // ---------------------------------------------------------------------------
+// Mollie (used when mollie_api_key is set; otherwise Stripe)
+// ---------------------------------------------------------------------------
+function use_mollie(): bool
+{
+    return (string) config('mollie_api_key') !== '';
+}
+
+/** True when a payment provider is configured, so the checkout can take money. */
+function payments_ready(): bool
+{
+    return use_mollie() || stripe_ready();
+}
+
+function mollie(string $method, string $path, array $params = []): array
+{
+    $ch = curl_init(rtrim((string) config('mollie_api_base', 'https://api.mollie.com/v2'), '/') . '/' . ltrim($path, '/'));
+    $opts = [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 25,
+        CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . config('mollie_api_key'), 'Content-Type: application/json'],
+    ];
+    if ($method === 'POST') {
+        $opts[CURLOPT_POST] = true;
+        $opts[CURLOPT_POSTFIELDS] = json_encode($params);
+    }
+    curl_setopt_array($ch, $opts);
+    $body = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err = curl_error($ch);
+    curl_close($ch);
+    $data = json_decode((string) $body, true) ?: [];
+    if ($code >= 400 || $err) {
+        error_log('Mollie error ' . $code . ': ' . ($data['detail'] ?? $err));
+        throw new RuntimeException($data['detail'] ?? 'Payment service unavailable');
+    }
+    return $data;
+}
+
+/**
+ * Payment status for an order token, the same for both providers:
+ * 'paid', 'failed', or 'open' (still waiting). Also returns amount/currency and,
+ * for Mollie, the hosted checkout link.
+ */
+function payment_status(string $token): array
+{
+    if (str_starts_with($token, 'tr_')) {
+        $p = mollie('GET', 'payments/' . rawurlencode($token));
+        $st = (string) ($p['status'] ?? '');
+        return [
+            'state' => $st === 'paid' ? 'paid' : (in_array($st, ['failed', 'canceled', 'expired'], true) ? 'failed' : 'open'),
+            'amount' => (float) ($p['amount']['value'] ?? 0),
+            'currency' => strtolower((string) ($p['amount']['currency'] ?? 'eur')),
+            'checkout' => (string) ($p['_links']['checkout']['href'] ?? ''),
+        ];
+    }
+    $i = stripe('GET', 'payment_intents/' . rawurlencode($token));
+    $st = (string) ($i['status'] ?? '');
+    return [
+        'state' => $st === 'succeeded' ? 'paid' : (in_array($st, ['requires_payment_method', 'canceled'], true) ? 'failed' : 'open'),
+        'amount' => ($i['amount'] ?? 0) / 100,
+        'currency' => (string) ($i['currency'] ?? 'eur'),
+        'checkout' => '',
+        'client_secret' => (string) ($i['client_secret'] ?? ''),
+    ];
+}
+
+/** Give a failed/expired Mollie order a fresh payment so the customer can try again. */
+function mollie_new_payment(int $mainId): string
+{
+    $rows = order_rows($mainId);
+    if (!$rows) {
+        throw new RuntimeException('Order not found');
+    }
+    $old = payment_status((string) $rows[0]['token']);
+    $payment = mollie_create_payment($mainId, $old['amount'], $old['currency'], (string) $rows[0]['email']);
+    db()->prepare('UPDATE sale_receits SET token = :n WHERE token = :o AND status = 0')
+        ->execute(['n' => $payment['id'], 'o' => $rows[0]['token']]);
+    return (string) $payment['_links']['checkout']['href'];
+}
+
+function mollie_create_payment(int $mainId, float $total, string $currency, string $email): array
+{
+    $base = rtrim((string) config('base_url'), '/');
+    $q = http_build_query(['o' => $mainId, 's' => order_sig($mainId)]);
+    $lang = function_exists('current_lang') ? current_lang() : 'en';
+    return mollie('POST', 'payments', [
+        'amount' => ['currency' => strtoupper($currency), 'value' => number_format($total, 2, '.', '')],
+        'description' => "Dj'aki mi ta! order #" . $mainId,
+        'redirectUrl' => $base . '/done.php?' . $q,
+        'cancelUrl' => $base . '/checkout.php',
+        'webhookUrl' => $base . '/mollie-webhook.php',
+        'locale' => $lang === 'nl' ? 'nl_NL' : 'en_US',
+        'metadata' => ['order_id' => $mainId, 'email' => $email],
+    ]);
+}
+
+// ---------------------------------------------------------------------------
 // Customers
 // ---------------------------------------------------------------------------
 
@@ -185,18 +282,22 @@ function create_order(array $in): int
             ->execute(['e' => $in['email'], 'p' => $in['phone'], 'u' => $clientId]);
     }
 
-    $intent = stripe('POST', 'payment_intents', [
-        'amount' => (int) round($total * 100),
-        'currency' => $currency,
-        'automatic_payment_methods[enabled]' => 'true',
-        'receipt_email' => $in['email'],
-        'description' => "Dj'aki mi ta! order #" . $mainId,
-        'metadata[order_ids]' => implode(',', $ids),
-        'metadata[client_id]' => $clientId,
-    ]);
+    if (use_mollie()) {
+        $token = (string) mollie_create_payment($mainId, $total, $currency, $in['email'])['id'];
+    } else {
+        $token = (string) stripe('POST', 'payment_intents', [
+            'amount' => (int) round($total * 100),
+            'currency' => $currency,
+            'automatic_payment_methods[enabled]' => 'true',
+            'receipt_email' => $in['email'],
+            'description' => "Dj'aki mi ta! order #" . $mainId,
+            'metadata[order_ids]' => implode(',', $ids),
+            'metadata[client_id]' => $clientId,
+        ])['id'];
+    }
     $up = $pdo->prepare('UPDATE sale_receits SET token = :t WHERE id = :id');
     foreach ($ids as $id) {
-        $up->execute(['t' => $intent['id'], 'id' => $id]);
+        $up->execute(['t' => $token, 'id' => $id]);
     }
     $pdo->commit();
 
@@ -223,8 +324,8 @@ function order_rows(int $mainId): array
  */
 function fulfill_payment_intent(string $intentId): bool
 {
-    $intent = stripe('GET', 'payment_intents/' . rawurlencode($intentId));
-    if (($intent['status'] ?? '') !== 'succeeded') {
+    // Works for Stripe (pi_...) and Mollie (tr_...): always asks the provider, never trusts the caller.
+    if (payment_status($intentId)['state'] !== 'paid') {
         return false;
     }
     $pdo = db();
@@ -233,6 +334,11 @@ function fulfill_payment_intent(string $intentId): bool
     $rows->execute(['t' => $intentId]);
     $rows = $rows->fetchAll();
     $activated = [];
+    // Pre-orders (paid before launch) start counting on launch day, so nobody loses days.
+    $start = date('Y-m-d');
+    if (function_exists('before_launch') && before_launch()) {
+        $start = date('Y-m-d', launch_ts());
+    }
     foreach ($rows as $r) {
         $clientPackageId = 0;
         if ((int) $r['package'] === ESIM_PACKAGE) {
@@ -243,11 +349,11 @@ function fulfill_payment_intent(string $intentId): bool
             $len->execute(['s' => $r['id']]);
             $len = $len->fetch() ?: ['days' => null, 'months' => 12];
             if (!empty($len['days'])) {
-                $pdo->prepare('INSERT INTO clients_package (users_id, package_id, expire) VALUES (:u, :p, DATE_ADD(CURDATE(), INTERVAL :d DAY))')
-                    ->execute(['u' => $r['user_id'], 'p' => $r['package'], 'd' => (int) $len['days']]);
+                $pdo->prepare('INSERT INTO clients_package (users_id, package_id, expire) VALUES (:u, :p, DATE_ADD(:start, INTERVAL :d DAY))')
+                    ->execute(['u' => $r['user_id'], 'p' => $r['package'], 'd' => (int) $len['days'], 'start' => $start]);
             } else {
-                $pdo->prepare('INSERT INTO clients_package (users_id, package_id, expire) VALUES (:u, :p, DATE_ADD(CURDATE(), INTERVAL :m MONTH))')
-                    ->execute(['u' => $r['user_id'], 'p' => $r['package'], 'm' => max(1, (int) $len['months'])]);
+                $pdo->prepare('INSERT INTO clients_package (users_id, package_id, expire) VALUES (:u, :p, DATE_ADD(:start, INTERVAL :m MONTH))')
+                    ->execute(['u' => $r['user_id'], 'p' => $r['package'], 'm' => max(1, (int) $len['months']), 'start' => $start]);
             }
             $clientPackageId = (int) $pdo->lastInsertId();
         }

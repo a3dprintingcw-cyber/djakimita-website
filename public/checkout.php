@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = t('co.err.terms');
     }
 
-    if (!$errors && !stripe_ready()) {
+    if (!$errors && !payments_ready()) {
         $errors[] = t('co.preview');
     }
     if (!$errors) {
@@ -137,7 +137,7 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
   <div class="wrap">
     <h1 class="co-h1"><?= e(t('co.title')) ?></h1>
 
-    <?php if (!stripe_ready()): ?>
+    <?php if (!payments_ready()): ?>
       <p class="notice"><?= e(t('co.preview')) ?></p>
     <?php endif; ?>
 

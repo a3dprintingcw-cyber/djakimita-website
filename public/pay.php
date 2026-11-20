@@ -3,7 +3,7 @@ require __DIR__ . '/../app/bootstrap.php';
 
 $orderId = (int) ($_GET['o'] ?? 0);
 $sig = (string) ($_GET['s'] ?? '');
-if (!order_sig_ok($orderId, $sig) || !stripe_ready()) {
+if (!order_sig_ok($orderId, $sig) || !payments_ready()) {
     header('Location: /checkout.php');
     exit;
 }
@@ -18,12 +18,23 @@ if ((int) $rows[0]['status'] === 1) {
     exit;
 }
 try {
-    $intent = stripe('GET', 'payment_intents/' . rawurlencode($rows[0]['token']));
+    $pay = payment_status((string) $rows[0]['token']);
+    // Mollie: the customer pays on Mollie's own secure page, then comes back to done.php
+    if (str_starts_with((string) $rows[0]['token'], 'tr_')) {
+        if ($pay['state'] === 'paid') {
+            header('Location: ' . $doneUrl);
+        } elseif ($pay['state'] === 'open' && $pay['checkout'] !== '') {
+            header('Location: ' . $pay['checkout']);
+        } else {
+            header('Location: ' . mollie_new_payment($orderId));
+        }
+        exit;
+    }
 } catch (Throwable $ex) {
     header('Location: /checkout.php');
     exit;
 }
-$amount = money($intent['amount'] / 100, $intent['currency']);
+$amount = money($pay['amount'], $pay['currency']);
 
 page_header(t('pay.title') . " · Dj'aki mi ta!");
 ?>
@@ -46,7 +57,7 @@ page_header(t('pay.title') . " · Dj'aki mi ta!");
 (function () {
   var stripe = Stripe(<?= json_encode((string) config('stripe_publishable_key')) ?>, {locale: <?= json_encode(current_lang() === 'nl' ? 'nl' : 'en') ?>});
   var elements = stripe.elements({
-    clientSecret: <?= json_encode($intent['client_secret']) ?>,
+    clientSecret: <?= json_encode($pay['client_secret']) ?>,
     appearance: {theme: 'stripe', variables: {colorPrimary: '#187c19', borderRadius: '12px', fontFamily: 'DM Sans, system-ui, sans-serif'}},
     fonts: [400, 500, 700].map(function (w) {
       return {family: 'DM Sans', weight: String(w), src: 'url(' + location.origin + '/assets/fonts/dm-sans-latin-' + w + '-normal.woff2)'};
