@@ -83,42 +83,34 @@ function render_countdown(): void
   <link rel="icon" href="/assets/img/logo-mark.png">
   <link rel="stylesheet" href="/assets/css/site.css">
   <style>
-    .cd { position: relative; isolation: isolate; min-height: 100vh; min-height: 100svh; display: grid; place-items: center; padding: 28px 18px 120px; }
-    .cd::before { content: ""; position: fixed; inset: 0; z-index: -2;
-      background: linear-gradient(180deg, rgba(4,40,70,.30), rgba(4,40,70,.10) 55%, rgba(60,40,10,.10)), url(/assets/img/beach.svg) center bottom/cover no-repeat #3fa9dc; }
-    .cd::after { content: ""; position: fixed; right: 2vw; bottom: 3vh; z-index: -1; width: clamp(130px, 22vw, 300px); aspect-ratio: 340 / 280;
-      background: url(/assets/img/divi-divi.svg) center/contain no-repeat; pointer-events: none; }
-    .cd-box { width: 100%; max-width: 640px; text-align: center; color: #fff; text-shadow: 0 1px 10px rgba(0,30,50,.4); }
-    .cd-panel { background: rgba(6,48,72,.45); border: 1px solid rgba(255,255,255,.18); border-radius: 28px; padding: 26px 22px 24px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-    .cd-top { display: flex; align-items: flex-end; justify-content: center; gap: 18px; margin-bottom: 22px; }
-    .cd-mascot { width: auto; height: 250px; filter: drop-shadow(0 12px 24px rgba(0,0,0,.35)); animation: cd-wave 3s ease-in-out infinite; transform-origin: 50% 100%; }
+    html, body { height: 100%; overflow: hidden; }
+    .cd { height: 100vh; height: 100svh; display: flex; align-items: center; justify-content: center; padding: clamp(10px, 2.5vh, 28px) 16px;
+      background: linear-gradient(180deg, rgba(11,46,13,.55), rgba(11,46,13,.82)), url(/assets/img/hero-beach.jpg) center/cover no-repeat; overflow: hidden; }
+    .cd-box { width: 100%; max-width: 620px; max-height: 100%; text-align: center; color: #fff; display: flex; flex-direction: column; align-items: center; gap: clamp(6px, 1.6vh, 16px); }
+    .cd-top { display: flex; align-items: flex-end; justify-content: center; gap: 14px; }
+    .cd-logo { flex: none; width: clamp(84px, 15vh, 150px); height: clamp(84px, 15vh, 150px); object-fit: contain; background: #fff; border-radius: 22%; padding: 7%; box-shadow: 0 10px 30px rgba(0,0,0,.25); align-self: center; }
+    .cd-mascot { width: auto; height: clamp(110px, 22vh, 230px); filter: drop-shadow(0 12px 24px rgba(0,0,0,.35)); animation: cd-wave 3s ease-in-out infinite; transform-origin: 50% 100%; }
     @keyframes cd-wave { 0%,100% { transform: rotate(0); } 50% { transform: rotate(-3deg) translateY(-4px); } }
     @media (prefers-reduced-motion: reduce) { .cd-mascot { animation: none; } }
-    .cd-logo { flex: none; width: 170px; height: 170px; align-self: center; margin: 0; background: #fff; border-radius: 50%; padding: 10px; border: 4px solid var(--gold); box-shadow: 0 12px 40px rgba(0,30,50,.3); }
-    .cd-kicker { display: inline-block; background: var(--gold); color: var(--green-ink); font-weight: 700; font-size: .85rem;
-      letter-spacing: .06em; text-transform: uppercase; padding: 6px 14px; border-radius: 999px; margin-bottom: 14px; }
-    .cd h1 { color: #fff; font-size: clamp(2rem, 6vw, 3.4rem); margin-bottom: 12px; }
-    .cd-text { font-size: 1.12rem; opacity: .92; max-width: 520px; margin: 0 auto 26px; }
-    .cd-clock { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-width: 520px; margin: 0 auto 28px; }
-    .cd-unit { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); border-radius: 16px; padding: 14px 4px 10px;
+    .cd-kicker { display: inline-block; background: var(--gold); color: var(--green-ink); font-weight: 700; font-size: clamp(.68rem, 1.5vh, .85rem);
+      letter-spacing: .06em; text-transform: uppercase; padding: 5px 14px; border-radius: 999px; }
+    .cd h1 { color: #fff; font-size: clamp(1.5rem, min(6vw, 5vh), 3.2rem); margin: 0; }
+    .cd-text { font-size: clamp(.9rem, 2vh, 1.1rem); opacity: .92; max-width: 500px; margin: 0; line-height: 1.45; }
+    .cd-clock { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; max-width: 480px; }
+    .cd-unit { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); border-radius: 14px; padding: clamp(6px, 1.4vh, 14px) 4px clamp(5px, 1vh, 10px);
       backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-    .cd-num { display: block; font-family: var(--display); font-weight: 800; font-size: clamp(2rem, 8vw, 3.2rem); line-height: 1; font-variant-numeric: tabular-nums; }
-    .cd-lbl { display: block; font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; opacity: .85; margin-top: 6px; }
+    .cd-num { display: block; font-family: var(--display); font-weight: 800; font-size: clamp(1.5rem, min(8vw, 5.5vh), 3rem); line-height: 1; font-variant-numeric: tabular-nums; }
+    .cd-lbl { display: block; font-size: clamp(.6rem, 1.3vh, .78rem); text-transform: uppercase; letter-spacing: .06em; opacity: .85; margin-top: 4px; }
     .cd-cta { display: inline-flex; align-items: center; gap: 10px; background: var(--gold); color: var(--green-ink); font-weight: 700;
-      font-size: 1.15rem; padding: 16px 30px; border-radius: 999px; text-decoration: none; box-shadow: 0 8px 24px rgba(0,0,0,.25); transition: transform .15s; }
+      font-size: clamp(1rem, 2.2vh, 1.15rem); padding: clamp(11px, 1.8vh, 16px) 28px; border-radius: 999px; text-decoration: none; box-shadow: 0 8px 24px rgba(0,0,0,.25); transition: transform .15s; }
     .cd-cta:hover { color: var(--green-ink); transform: translateY(-2px); }
-    .cd-note { font-size: .92rem; opacity: .85; margin: 14px auto 0; max-width: 440px; }
-    .cd-foot { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 14px 22px; justify-content: center; align-items: center; font-size: .92rem; }
+    .cd-note { font-size: clamp(.75rem, 1.6vh, .9rem); opacity: .85; margin: 0; max-width: 420px; }
+    .cd-foot { display: flex; flex-wrap: wrap; gap: 6px 18px; justify-content: center; align-items: center; font-size: clamp(.78rem, 1.7vh, .92rem); }
     .cd-foot a { color: #fff; opacity: .9; }
-    .cd-follow { margin-top: 30px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.2); }
-    .cd-follow-t { font-weight: 700; margin-bottom: 12px; }
-    .cd-brands { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 18px; }
-    .cd-brand { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 6px 8px 6px 16px; }
-    .cd-brand span { font-weight: 700; margin-right: 4px; }
-    .cd-brand a { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; color: #fff; }
-    .cd-brand a:hover { background: rgba(255,255,255,.18); color: #fff; }
-    @media (max-width: 520px) { .cd-panel { padding: 22px 14px 20px; border-radius: 22px; } .cd-logo { width: 128px; height: 128px; padding: 8px; } .cd-mascot { height: 190px; } .cd-top { gap: 12px; margin-bottom: 16px; } }
-    @media (max-width: 420px) { .cd-clock { gap: 6px; } .cd-lbl { font-size: .68rem; letter-spacing: .03em; } }
+    .cd-social { display: flex; gap: 2px; }
+    .cd-social a { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; }
+    .cd-social a:hover { background: rgba(255,255,255,.18); }
+    @media (max-height: 640px) { .cd-note { display: none; } }
   </style>
 </head>
 <body>
@@ -126,12 +118,15 @@ function render_countdown(): void
   <div class="cd-box">
     <div class="cd-top">
       <?php $img = __DIR__ . '/../public_html/assets/img/'; $img2 = __DIR__ . '/../public/assets/img/'; ?>
-      <img class="cd-logo" src="/assets/img/logo-mark.png" alt="Dj'aki mi ta!" width="255" height="255">
+      <?php if (is_file($img . 'logo-square.jpg') || is_file($img2 . 'logo-square.jpg')): ?>
+      <img class="cd-logo" src="/assets/img/logo-square.jpg" alt="Dj'aki mi ta!" width="300" height="300" style="padding:0">
+      <?php else: ?>
+      <img class="cd-logo" src="/assets/img/logo-full.png" alt="Dj'aki mi ta!" width="325" height="417">
+      <?php endif; ?>
       <?php if (is_file($img . 'mascot.webp') || is_file($img2 . 'mascot.webp')): ?>
       <img class="cd-mascot" src="/assets/img/mascot.webp" alt="" width="260" height="401">
       <?php endif; ?>
     </div>
-    <div class="cd-panel">
     <span class="cd-kicker"><?= e($c['kicker']) ?></span>
     <h1><?= e($c['title']) ?></h1>
     <p class="cd-text"><?= e($c['text']) ?></p>
@@ -147,21 +142,13 @@ function render_countdown(): void
     <a class="cd-cta" href="/checkout.php"><?= e($c['cta']) ?> <?= icon('arrow', 20) ?></a>
     <p class="cd-note"><?= e($c['note']) ?></p>
 
-    <div class="cd-follow">
-      <p class="cd-follow-t"><?= e($c['follow']) ?></p>
-      <div class="cd-brands">
-        <div class="cd-brand">
-          <span>Dj'aki mi ta!</span>
-          <a href="https://www.instagram.com/djakimita/" rel="noopener" aria-label="Dj'aki mi ta! on Instagram"><?= icon('instagram', 22) ?></a>
-          <a href="https://www.facebook.com/share/1ZT1D2dMHx/" rel="noopener" aria-label="Dj'aki mi ta! on Facebook"><?= icon('facebook', 22) ?></a>
-          <a href="https://www.tiktok.com/@djakimita.cw" rel="noopener" aria-label="Dj'aki mi ta! on TikTok"><?= icon('tiktok', 22) ?></a>
-        </div>
-      </div>
-    </div>
-
     <div class="cd-foot">
       <a href="/login.php"><?= e($c['login']) ?></a>
-    </div>
+      <span class="cd-social">
+        <a href="https://www.instagram.com/djakimita/" rel="noopener" aria-label="Instagram"><?= icon('instagram', 20) ?></a>
+        <a href="https://www.facebook.com/share/1ZT1D2dMHx/" rel="noopener" aria-label="Facebook"><?= icon('facebook', 20) ?></a>
+        <a href="https://www.tiktok.com/@djakimita.cw" rel="noopener" aria-label="TikTok"><?= icon('tiktok', 20) ?></a>
+      </span>
     </div>
   </div>
 </main>
