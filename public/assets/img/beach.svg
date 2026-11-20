@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMax slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b6fa6"/><stop offset=".55" stop-color="#3fa9dc"/><stop offset="1" stop-color="#9fdcf2"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a6f8f"/><stop offset=".45" stop-color="#0fa0b3"/><stop offset="1" stop-color="#3fd0c9"/>
+    </linearGradient>
+    <linearGradient id="sand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6e2b6"/><stop offset="1" stop-color="#e9c78f"/>
+    </linearGradient>
+    <radialGradient id="sun" cx=".82" cy=".14" r=".35">
+      <stop offset="0" stop-color="#fff7d6" stop-opacity=".9"/><stop offset="1" stop-color="#fff7d6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#sky)"/>
+  <rect width="1600" height="1000" fill="url(#sun)"/>
+  <g fill="#fff" opacity=".55">
+    <ellipse cx="260" cy="170" rx="110" ry="26"/><ellipse cx="330" cy="152" rx="70" ry="24"/>
+    <ellipse cx="1150" cy="240" rx="90" ry="20"/><ellipse cx="1205" cy="226" rx="55" ry="18"/>
+    <ellipse cx="700" cy="110" rx="70" ry="14"/>
+  </g>
+  <!-- sea -->
+  <path d="M0 560 H1600 V1000 H0Z" fill="url(#sea)"/>
+  <path d="M0 560 H1600" stroke="#0a5f7a" stroke-width="3" opacity=".5"/>
+  <g stroke="#fff" stroke-width="3" fill="none" opacity=".35" stroke-linecap="round">
+    <path d="M120 610 q30 -8 60 0"/><path d="M420 640 q40 -10 80 0"/><path d="M820 600 q30 -8 60 0"/>
+    <path d="M1180 650 q40 -10 80 0"/><path d="M260 700 q50 -12 100 0"/><path d="M980 720 q50 -12 100 0"/>
+  </g>
+  <!-- sand with foam edge -->
+  <path d="M0 790 C220 760 420 800 640 780 C900 756 1120 800 1360 770 C1460 758 1540 762 1600 768 V1000 H0Z" fill="#ffffff" opacity=".85"/>
+  <path d="M0 806 C230 778 430 816 650 798 C910 776 1130 818 1370 790 C1470 780 1545 784 1600 790 V1000 H0Z" fill="url(#sand)"/>
+  <path d="M0 806 C230 778 430 816 650 798 C910 776 1130 818 1370 790 C1470 780 1545 784 1600 790" stroke="#d9b57a" stroke-width="2" fill="none" opacity=".5"/>
+  <g fill="#d8b47c" opacity=".55">
+    <circle cx="300" cy="900" r="3"/><circle cx="520" cy="940" r="2.5"/><circle cx="760" cy="880" r="3"/>
+    <circle cx="980" cy="950" r="2.5"/><circle cx="1180" cy="905" r="3"/><circle cx="160" cy="960" r="2.5"/>
+  </g>
+</svg>

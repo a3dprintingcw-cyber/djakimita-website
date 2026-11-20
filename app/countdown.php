@@ -83,16 +83,18 @@ function render_countdown(): void
   <link rel="icon" href="/assets/img/logo-mark.png">
   <link rel="stylesheet" href="/assets/css/site.css">
   <style>
-    .cd { min-height: 100vh; min-height: 100svh; display: grid; place-items: center; padding: 28px 18px;
-      background: linear-gradient(180deg, rgba(8,40,30,.55), rgba(8,40,30,.35) 45%, rgba(8,40,30,.7)), url(/assets/img/hero-beach.jpg) 30% 85%/cover no-repeat; }
-    @media (min-width: 700px) { .cd { background-size: auto, 165% auto; background-position: 0 0, 0% 100%; background-color: #0b2e0d; } }
-    .cd-box { width: 100%; max-width: 640px; text-align: center; color: #fff; text-shadow: 0 1px 12px rgba(0,0,0,.35); }
+    .cd { position: relative; isolation: isolate; min-height: 100vh; min-height: 100svh; display: grid; place-items: center; padding: 28px 18px 120px; }
+    .cd::before { content: ""; position: fixed; inset: 0; z-index: -2;
+      background: linear-gradient(180deg, rgba(4,40,70,.30), rgba(4,40,70,.10) 55%, rgba(60,40,10,.10)), url(/assets/img/beach.svg) center bottom/cover no-repeat #3fa9dc; }
+    .cd::after { content: ""; position: fixed; right: 2vw; bottom: 3vh; z-index: -1; width: clamp(130px, 22vw, 300px); aspect-ratio: 340 / 280;
+      background: url(/assets/img/divi-divi.svg) center/contain no-repeat; pointer-events: none; }
+    .cd-box { width: 100%; max-width: 640px; text-align: center; color: #fff; text-shadow: 0 1px 10px rgba(0,30,50,.4); }
+    .cd-panel { background: rgba(6,48,72,.45); border: 1px solid rgba(255,255,255,.18); border-radius: 28px; padding: 26px 22px 24px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
     .cd-top { display: flex; align-items: flex-end; justify-content: center; gap: 18px; margin-bottom: 22px; }
-    .cd-logo-tall { width: 150px; padding: 14px 16px 10px; }
     .cd-mascot { width: auto; height: 250px; filter: drop-shadow(0 12px 24px rgba(0,0,0,.35)); animation: cd-wave 3s ease-in-out infinite; transform-origin: 50% 100%; }
     @keyframes cd-wave { 0%,100% { transform: rotate(0); } 50% { transform: rotate(-3deg) translateY(-4px); } }
     @media (prefers-reduced-motion: reduce) { .cd-mascot { animation: none; } }
-    .cd-logo { flex: none; width: 210px; height: auto; align-self: center; margin: 0; background: #fff; border-radius: 28px; padding: 0; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
+    .cd-logo { flex: none; width: 170px; height: 170px; align-self: center; margin: 0; background: #fff; border-radius: 50%; padding: 10px; border: 4px solid var(--gold); box-shadow: 0 12px 40px rgba(0,30,50,.3); }
     .cd-kicker { display: inline-block; background: var(--gold); color: var(--green-ink); font-weight: 700; font-size: .85rem;
       letter-spacing: .06em; text-transform: uppercase; padding: 6px 14px; border-radius: 999px; margin-bottom: 14px; }
     .cd h1 { color: #fff; font-size: clamp(2rem, 6vw, 3.4rem); margin-bottom: 12px; }
@@ -115,7 +117,7 @@ function render_countdown(): void
     .cd-brand span { font-weight: 700; margin-right: 4px; }
     .cd-brand a { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; color: #fff; }
     .cd-brand a:hover { background: rgba(255,255,255,.18); color: #fff; }
-    @media (max-width: 520px) { .cd-logo { width: 150px; border-radius: 22px; } .cd-mascot { height: 190px; } .cd-top { gap: 12px; margin-bottom: 16px; } }
+    @media (max-width: 520px) { .cd-panel { padding: 22px 14px 20px; border-radius: 22px; } .cd-logo { width: 128px; height: 128px; padding: 8px; } .cd-mascot { height: 190px; } .cd-top { gap: 12px; margin-bottom: 16px; } }
     @media (max-width: 420px) { .cd-clock { gap: 6px; } .cd-lbl { font-size: .68rem; letter-spacing: .03em; } }
   </style>
 </head>
@@ -124,15 +126,12 @@ function render_countdown(): void
   <div class="cd-box">
     <div class="cd-top">
       <?php $img = __DIR__ . '/../public_html/assets/img/'; $img2 = __DIR__ . '/../public/assets/img/'; ?>
-      <?php if (is_file($img . 'logo-square.jpg') || is_file($img2 . 'logo-square.jpg')): ?>
-      <img class="cd-logo" src="/assets/img/logo-square.jpg" alt="Dj'aki mi ta!" width="300" height="300">
-      <?php else: ?>
-      <img class="cd-logo cd-logo-tall" src="/assets/img/logo-full.png" alt="Dj'aki mi ta!" width="325" height="417">
-      <?php endif; ?>
+      <img class="cd-logo" src="/assets/img/logo-mark.png" alt="Dj'aki mi ta!" width="255" height="255">
       <?php if (is_file($img . 'mascot.webp') || is_file($img2 . 'mascot.webp')): ?>
       <img class="cd-mascot" src="/assets/img/mascot.webp" alt="" width="260" height="401">
       <?php endif; ?>
     </div>
+    <div class="cd-panel">
     <span class="cd-kicker"><?= e($c['kicker']) ?></span>
     <h1><?= e($c['title']) ?></h1>
     <p class="cd-text"><?= e($c['text']) ?></p>
@@ -157,17 +156,12 @@ function render_countdown(): void
           <a href="https://www.facebook.com/share/1ZT1D2dMHx/" rel="noopener" aria-label="Dj'aki mi ta! on Facebook"><?= icon('facebook', 22) ?></a>
           <a href="https://www.tiktok.com/@djakimita.cw" rel="noopener" aria-label="Dj'aki mi ta! on TikTok"><?= icon('tiktok', 22) ?></a>
         </div>
-        <div class="cd-brand">
-          <span>Rib'e luga!</span>
-          <a href="https://www.instagram.com/ribeluga/" rel="noopener" aria-label="Rib'e luga! on Instagram"><?= icon('instagram', 22) ?></a>
-          <a href="https://www.facebook.com/profile.php?id=61578003292607" rel="noopener" aria-label="Rib'e luga! on Facebook"><?= icon('facebook', 22) ?></a>
-          <a href="https://www.tiktok.com/@ribeluga" rel="noopener" aria-label="Rib'e luga! on TikTok"><?= icon('tiktok', 22) ?></a>
-        </div>
       </div>
     </div>
 
     <div class="cd-foot">
       <a href="/login.php"><?= e($c['login']) ?></a>
+    </div>
     </div>
   </div>
 </main>

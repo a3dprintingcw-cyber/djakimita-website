@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 280">
+  <!-- divi-divi tree, bottom right corner, blown to the west -->
+  <g transform="translate(300 200)">
+    <ellipse cx="-70" cy="58" rx="150" ry="16" fill="#c9a46a" opacity=".55"/>
+    <path d="M0 60 C-4 20 -2 -20 -14 -55 C-26 -88 -60 -112 -110 -128 L-104 -140 C-48 -126 -8 -100 8 -62 C22 -28 18 20 16 60Z" fill="#6b4a2f"/>
+    <path d="M-30 -84 C-60 -96 -96 -98 -130 -92 L-128 -84 C-96 -88 -62 -86 -34 -76Z" fill="#6b4a2f"/>
+    <g fill="#2f7d32">
+      <ellipse cx="-120" cy="-150" rx="120" ry="34"/>
+      <ellipse cx="-190" cy="-138" rx="90" ry="26"/>
+      <ellipse cx="-70" cy="-166" rx="80" ry="26"/>
+      <ellipse cx="-150" cy="-104" rx="70" ry="20"/>
+    </g>
+    <g fill="#3f9a42">
+      <ellipse cx="-110" cy="-160" rx="70" ry="18"/><ellipse cx="-200" cy="-146" rx="50" ry="14"/>
+    </g>
+  </g>
+</svg>
