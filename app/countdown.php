@@ -172,6 +172,9 @@ function countdown_gate(): void
         return;
     }
     // Staff can look at the full site before launch with ?peek=<preview key>
+    if (($_GET['peek'] ?? '') === 'off') {
+        unset($_SESSION['peek']);
+    }
     $peek = (string) config('countdown_peek', '');
     if ($peek !== '' && (($_GET['peek'] ?? '') === $peek || ($_SESSION['peek'] ?? '') === $peek)) {
         $_SESSION['peek'] = $peek;
