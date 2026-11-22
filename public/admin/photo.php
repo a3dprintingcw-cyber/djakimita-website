@@ -3,7 +3,7 @@
 require __DIR__ . '/../../app/bootstrap.php';
 
 $f = (string) ($_GET['f'] ?? '');
-if (!admin_user() || !preg_match('/^[a-f0-9]{32}\.jpg$/', $f) || !is_file(verify_dir() . '/' . $f)) {
+if (!admin_user() || admin_role() !== 'admin' || !preg_match('/^[a-f0-9]{32}\.jpg$/', $f) || !is_file(verify_dir() . '/' . $f)) {
     http_response_code(404);
     exit;
 }

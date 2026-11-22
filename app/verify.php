@@ -204,5 +204,13 @@ function require_admin(): string
         header('Location: /admin/');
         exit;
     }
+    // Inspectors only get the partner visits pages.
+    if (function_exists('admin_role') && admin_role() === 'inspector') {
+        $page = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''), '.php');
+        if (!in_array($page, defined('INSPECTOR_PAGES') ? INSPECTOR_PAGES : ['visits'], true)) {
+            header('Location: /admin/visits.php');
+            exit;
+        }
+    }
     return $u;
 }

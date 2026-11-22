@@ -30,11 +30,11 @@ page_header($p['name'] . " · Dj'aki mi ta!", 'partners', mb_substr(strip_tags((
     <div class="detail">
       <div class="gallery">
         <?php if ($p['images']): ?>
-          <img class="gallery-main" src="<?= e(url('img.php', ['i' => $p['images'][0], 's' => 'l'])) ?>" alt="<?= e($p['name']) ?>" width="1400" height="930">
+          <a class="lb" href="<?= e(url('img.php', ['i' => $p['images'][0], 's' => 'l'])) ?>"><img class="gallery-main" src="<?= e(url('img.php', ['i' => $p['images'][0], 's' => 'l'])) ?>" alt="<?= e($p['name']) ?>" width="1400" height="930"></a>
           <?php if (count($p['images']) > 1): ?>
             <div class="thumbs">
-              <?php foreach (array_slice($p['images'], 1, 4) as $img): ?>
-                <img src="<?= e(url('img.php', ['i' => $img, 's' => 's'])) ?>" alt="" loading="lazy" width="360" height="240">
+              <?php foreach (array_slice($p['images'], 1) as $k => $img): ?>
+                <a class="lb" href="<?= e(url('img.php', ['i' => $img, 's' => 'l'])) ?>"<?= $k >= 4 ? ' hidden' : '' ?>><img src="<?= e(url('img.php', ['i' => $img, 's' => 's'])) ?>" alt="" loading="lazy" width="360" height="240"></a>
               <?php endforeach; ?>
             </div>
           <?php endif; ?>
@@ -98,4 +98,37 @@ page_header($p['name'] . " · Dj'aki mi ta!", 'partners', mb_substr(strip_tags((
     </div>
   </div>
 </section>
+<div class="lbox" id="lbox" hidden role="dialog" aria-modal="true" aria-label="Photo">
+  <button type="button" class="lbox-x" aria-label="Close">&times;</button>
+  <button type="button" class="lbox-p" aria-label="Previous">&#8249;</button>
+  <img alt="">
+  <button type="button" class="lbox-n" aria-label="Next">&#8250;</button>
+</div>
+<style>
+.gallery a.lb{display:block;cursor:zoom-in}.gallery a.lb[hidden]{display:none}
+.lbox{position:fixed;inset:0;z-index:1000;background:rgba(10,20,12,.92);display:flex;align-items:center;justify-content:center}
+.lbox[hidden]{display:none}
+.lbox img{max-width:94vw;max-height:86vh;border-radius:10px;object-fit:contain}
+.lbox button{position:absolute;background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:50%;width:48px;height:48px;font-size:32px;line-height:44px;cursor:pointer}
+.lbox-x{top:16px;right:16px}.lbox-p{left:12px;top:50%;transform:translateY(-50%)}.lbox-n{right:12px;top:50%;transform:translateY(-50%)}
+</style>
+<script>
+(function () {
+  var links = [].slice.call(document.querySelectorAll('.gallery a.lb')), box = document.getElementById('lbox');
+  if (!links.length || !box) return;
+  var img = box.querySelector('img'), i = 0;
+  function show(n) { i = (n + links.length) % links.length; img.src = links[i].href; }
+  function close() { box.hidden = true; document.body.style.overflow = ''; }
+  links.forEach(function (a, n) { a.addEventListener('click', function (e) { e.preventDefault(); show(n); box.hidden = false; document.body.style.overflow = 'hidden'; }); });
+  var one = links.length < 2;
+  box.querySelector('.lbox-p').hidden = one; box.querySelector('.lbox-n').hidden = one;
+  box.querySelector('.lbox-p').onclick = function (e) { e.stopPropagation(); show(i - 1); };
+  box.querySelector('.lbox-n').onclick = function (e) { e.stopPropagation(); show(i + 1); };
+  box.querySelector('.lbox-x').onclick = close;
+  box.addEventListener('click', function (e) { if (e.target === box) close(); });
+  document.addEventListener('keydown', function (e) { if (box.hidden) return; if (e.key === 'Escape') close(); if (e.key === 'ArrowLeft') show(i - 1); if (e.key === 'ArrowRight') show(i + 1); });
+  var x0 = null; box.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; }, {passive: true});
+  box.addEventListener('touchend', function (e) { if (x0 === null) return; var d = e.changedTouches[0].clientX - x0; if (Math.abs(d) > 50) show(i + (d < 0 ? 1 : -1)); x0 = null; });
+})();
+</script>
 <?php page_footer();

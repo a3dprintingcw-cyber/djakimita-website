@@ -33,10 +33,34 @@ function set_setting(string $key, string $value): void
 function staff_accounts(): array
 {
     try {
-        return db()->query('SELECT id, username, name, active, created_at, last_login FROM admin_users ORDER BY username')->fetchAll();
+        return db()->query('SELECT id, username, name, role, active, created_at, last_login FROM admin_users ORDER BY username')->fetchAll();
     } catch (Throwable $e) {
-        return [];
+        try {
+            return db()->query("SELECT id, username, name, 'admin' role, active, created_at, last_login FROM admin_users ORDER BY username")->fetchAll();
+        } catch (Throwable $e) {
+            return [];
+        }
     }
+}
+
+const STAFF_ROLES = ['admin' => 'Admin (everything)', 'inspector' => 'Partner visits only'];
+
+/** 'admin' or 'inspector'. Inspectors only see the partner visits pages. Read fresh every request. */
+function admin_role(): string
+{
+    static $role = null;
+    if ($role === null) {
+        $role = 'admin';
+        if (admin_user()) {
+            try {
+                $st = db()->prepare('SELECT role FROM admin_users WHERE username = :u');
+                $st->execute(['u' => admin_user()]);
+                $role = $st->fetchColumn() === 'inspector' ? 'inspector' : 'admin';
+            } catch (Throwable $e) {
+            }
+        }
+    }
+    return $role;
 }
 
 function staff_password_ok(string $pass): ?string
@@ -189,8 +213,10 @@ const ADMIN_MENU = [
     'categories' => ['Categories', 'grid'],
     'prices' => ['Prices', 'tag'],
     'app-home' => ['App home', 'phone'],
+    'visits' => ['Partner visits', 'pin'],
     'settings' => ['Settings', 'gear'],
 ];
+const INSPECTOR_PAGES = ['visits'];
 
 function admin_head(string $title, string $active): void
 {
@@ -219,14 +245,16 @@ function admin_head(string $title, string $active): void
   <aside class="ad-side" id="ad-side">
     <a class="ad-brand" href="/admin/"><img src="/assets/img/logo-mark.png" alt="" width="36" height="36"><span>Dj'aki mi ta!<small>Admin</small></span></a>
     <nav class="ad-menu">
-      <?php foreach (ADMIN_MENU as $key => [$label, $ic]): ?>
+      <?php foreach (ADMIN_MENU as $key => [$label, $ic]): if (admin_role() === 'inspector' && !in_array($key, INSPECTOR_PAGES, true)) { continue; } ?>
         <a href="/admin/<?= $key === 'index' ? '' : $key . '.php' ?>" class="<?= $key === $active ? 'on' : '' ?>"><?= e($label) ?><?= $key === 'checks' && $waiting ? ' <span class="ad-badge">' . $waiting . '</span>' : '' ?></a>
       <?php endforeach; ?>
     </nav>
     <div class="ad-side-foot">
       <a href="/" target="_blank" rel="noopener">View website ↗</a>
+      <?php if (admin_role() === 'admin'): ?>
       <a href="/Dashboard/" target="_blank" rel="noopener">Old dashboard ↗</a>
       <a href="https://my.mollie.com/dashboard" target="_blank" rel="noopener">Mollie ↗</a>
+      <?php endif; ?>
       <form method="post" action="/admin/"><?= csrf_field() ?><button name="action" value="logout" class="ad-linkbtn">Log out <?= e((string) admin_user()) ?></button></form>
     </div>
   </aside>
@@ -280,7 +308,8 @@ function admin_css(): string
 .ad-flash.ok{background:#e3f3df;color:#1c5a1d}
 .ad-flash.bad{background:#fde7e4;color:#8a2216}
 .ad-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-bottom:10px}
-.ad-card{background:#fff;border:1px solid #e1e8dd;border-radius:14px;padding:14px 16px}
+.ad-card{background:#fff;border:1px solid #e1e8dd;border-radius:14px;padding:14px 16px;color:inherit;text-decoration:none;display:block}
+a.ad-card:hover{border-color:#3d8b40;box-shadow:0 2px 10px rgba(0,0,0,.06)}
 .ad-card b{display:block;font-size:1.6rem;font-family:var(--display)}
 .ad-card span{color:#5b6a5d;font-size:.85rem}
 .ad-box{background:#fff;border:1px solid #e1e8dd;border-radius:14px;padding:18px 20px;margin-bottom:16px}

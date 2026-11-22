@@ -100,15 +100,15 @@ admin_head('Overview', 'index');
 <?php endif; ?>
 
 <div class="ad-cards">
-  <div class="ad-card"><b><?= $today ?></b><span>Paid orders today</span></div>
-  <div class="ad-card"><b><?= $week ?></b><span>Paid orders, last 7 days</span></div>
+  <a class="ad-card" href="/admin/orders.php?status=paid&amp;from=<?= date('Y-m-d') ?>"><b><?= $today ?></b><span>Paid orders today</span></a>
+  <a class="ad-card" href="/admin/orders.php?status=paid&amp;from=<?= date('Y-m-d', strtotime('-7 days')) ?>"><b><?= $week ?></b><span>Paid orders, last 7 days</span></a>
   <?php foreach ($money as $m): ?>
-    <div class="ad-card"><b><?= e(admin_money((float) $m['total'], $m['cur'] ?: 'eur')) ?></b><span>Sales last 30 days<?= $m['cur'] ? '' : ' (old orders)' ?></span></div>
+    <a class="ad-card" href="/admin/orders.php?status=paid&amp;from=<?= date('Y-m-d', strtotime('-30 days')) ?>"><b><?= e(admin_money((float) $m['total'], $m['cur'] ?: 'eur')) ?></b><span>Sales last 30 days<?= $m['cur'] ? '' : ' (old orders)' ?></span></a>
   <?php endforeach; ?>
-  <div class="ad-card"><b><?= $activeCards ?></b><span>Active cards</span></div>
-  <div class="ad-card"><b><?= $customers ?></b><span>Customer accounts</span></div>
-  <div class="ad-card"><b><?= $partners ?></b><span>Active partners (Curaçao)</span></div>
-  <div class="ad-card"><b><?= $unpaid ?></b><span>Started but not paid (48 h)</span></div>
+  <a class="ad-card" href="/admin/customers.php?only=active"><b><?= $activeCards ?></b><span>Active cards</span></a>
+  <a class="ad-card" href="/admin/customers.php"><b><?= $customers ?></b><span>Customer accounts</span></a>
+  <a class="ad-card" href="/admin/partners.php?country=1&amp;show=on"><b><?= $partners ?></b><span>Active partners (Curaçao)</span></a>
+  <a class="ad-card" href="/admin/orders.php?status=open&amp;from=<?= date('Y-m-d', strtotime('-2 days')) ?>"><b><?= $unpaid ?></b><span>Started but not paid (48 h)</span></a>
 </div>
 
 <?php if ($launch && strtotime($launch) > time()): ?>

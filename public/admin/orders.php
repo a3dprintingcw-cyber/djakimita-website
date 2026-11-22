@@ -179,6 +179,7 @@ if ($id) {
 $q = trim((string) ($_GET['q'] ?? ''));
 $status = (string) ($_GET['status'] ?? 'paid');
 $via = (string) ($_GET['via'] ?? '');
+$from = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['from'] ?? '')) ? (string) $_GET['from'] : '';
 $page = max(1, (int) ($_GET['p'] ?? 1));
 $per = 40;
 
@@ -195,6 +196,10 @@ if ($via === 'mollie') {
     $where[] = "s.token LIKE 'sentoo:%'";
 } elseif ($via === 'stripe') {
     $where[] = "s.token LIKE 'pi\\_%'";
+}
+if ($from !== '') {
+    $where[] = 's.dia_orario >= :from';
+    $params['from'] = $from . ' 00:00:00';
 }
 if ($q !== '') {
     if (ctype_digit(ltrim($q, '#'))) {
@@ -231,6 +236,7 @@ admin_head('Orders', 'orders');
     <option value="sentoo"<?= $via === 'sentoo' ? ' selected' : '' ?>>Sentoo</option>
     <option value="stripe"<?= $via === 'stripe' ? ' selected' : '' ?>>Stripe (old site)</option>
   </select>
+  <label class="ad-muted">from <input type="date" name="from" value="<?= e($from) ?>"></label>
   <button class="btn btn-sm">Search</button>
   <span class="ad-muted"><?= $total ?> order<?= $total === 1 ? '' : 's' ?></span>
 </form>
@@ -252,5 +258,5 @@ admin_head('Orders', 'orders');
   </tbody>
 </table>
 </div>
-<?= pager($total, $page, $per, array_filter(['q' => $q, 'status' => $status, 'via' => $via])) ?>
+<?= pager($total, $page, $per, array_filter(['q' => $q, 'status' => $status, 'via' => $via, 'from' => $from])) ?>
 <?php admin_foot();

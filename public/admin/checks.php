@@ -72,8 +72,8 @@ $queue = [];
 $recent = [];
 $apps = [];
 {
-    $queue = db()->query('SELECT v.*, c.email, s.package FROM holder_verifications v
-                          JOIN clients c ON c.id = v.client_id
+    $queue = db()->query('SELECT v.*, COALESCE(c.email, s.email, "") email, s.package FROM holder_verifications v
+                          LEFT JOIN clients c ON c.id = v.client_id
                           LEFT JOIN sale_receits s ON s.id = v.order_id
                           WHERE v.status = 0 ORDER BY v.submitted_at, v.order_id, v.id')->fetchAll();
     $apps = db()->query('SELECT * FROM partner_applications WHERE status = 0 ORDER BY created_at DESC LIMIT 50')->fetchAll();

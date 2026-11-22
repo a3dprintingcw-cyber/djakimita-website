@@ -61,9 +61,10 @@ admin_post(function () use ($db, $me) {
             if ((int) $db->query('SELECT COUNT(*) FROM admin_users')->fetchColumn() === 0) {
                 throw new RuntimeException('First change your own password above, so your own login moves over too.');
             }
-            $db->prepare('INSERT INTO admin_users (username, name, pass_hash, active, created_at) VALUES (:u, :n, :h, 1, NOW())')
-                ->execute(['u' => $u, 'n' => mb_substr(trim((string) $_POST['name']), 0, 100), 'h' => password_hash((string) $_POST['password'], PASSWORD_DEFAULT)]);
-            admin_log('staff_added', $u);
+            $role = ($_POST['role'] ?? '') === 'inspector' ? 'inspector' : 'admin';
+            $db->prepare('INSERT INTO admin_users (username, name, role, pass_hash, active, created_at) VALUES (:u, :n, :r, :h, 1, NOW())')
+                ->execute(['u' => $u, 'n' => mb_substr(trim((string) $_POST['name']), 0, 100), 'r' => $role, 'h' => password_hash((string) $_POST['password'], PASSWORD_DEFAULT)]);
+            admin_log('staff_added', $u . ' (' . $role . ')');
             flash('Staff account ' . $u . ' added. Give them the password in person, not by email.');
             break;
         case 'staff_toggle':
@@ -74,6 +75,16 @@ admin_post(function () use ($db, $me) {
             $db->prepare('UPDATE admin_users SET active = 1 - active WHERE username = :u')->execute(['u' => $u]);
             admin_log('staff_toggled', $u);
             flash('Updated ' . $u . '.');
+            break;
+        case 'staff_role':
+            $u = (string) $_POST['username'];
+            if ($u === $me) {
+                throw new RuntimeException('You cannot change your own role.');
+            }
+            $role = ($_POST['role'] ?? '') === 'inspector' ? 'inspector' : 'admin';
+            $db->prepare('UPDATE admin_users SET role = :r WHERE username = :u')->execute(['r' => $role, 'u' => $u]);
+            admin_log('staff_role', $u . ' → ' . $role);
+            flash($u . ' is now: ' . STAFF_ROLES[$role] . '.');
             break;
         case 'staff_password':
             $u = (string) $_POST['username'];
@@ -122,9 +133,13 @@ admin_head('Settings', 'settings');
   <h2 style="margin-top:0">Staff accounts</h2>
   <?php if ($staff): ?>
     <div class="ad-wrap"><table class="ad-table">
-      <thead><tr><th>Username</th><th>Name</th><th>Last login</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>Username</th><th>Name</th><th>Can see</th><th>Last login</th><th>Status</th><th></th></tr></thead>
       <tbody><?php foreach ($staff as $s): ?>
-        <tr><td><strong><?= e($s['username']) ?></strong></td><td><?= e($s['name']) ?></td><td><?= e(admin_date($s['last_login'], true)) ?></td>
+        <tr><td><strong><?= e($s['username']) ?></strong></td><td><?= e($s['name']) ?></td>
+          <td><?php if ($s['username'] !== $me): ?><form method="post" class="ad-inline"><?= csrf_field() ?><input type="hidden" name="username" value="<?= e($s['username']) ?>"><input type="hidden" name="action" value="staff_role">
+            <select name="role" onchange="this.form.submit()"><?php foreach (STAFF_ROLES as $rk => $rl): ?><option value="<?= $rk ?>"<?= ($s['role'] ?? 'admin') === $rk ? ' selected' : '' ?>><?= e($rl) ?></option><?php endforeach; ?></select></form>
+            <?php else: ?><?= e(STAFF_ROLES[$s['role'] ?? 'admin'] ?? 'Admin') ?><?php endif; ?></td>
+          <td><?= e(admin_date($s['last_login'], true)) ?></td>
           <td><?= (int) $s['active'] ? '<span class="ad-tag ok">Active</span>' : '<span class="ad-tag">Off</span>' ?></td>
           <td><?php if ($s['username'] !== $me): ?>
             <form method="post" class="ad-inline"><?= csrf_field() ?><input type="hidden" name="username" value="<?= e($s['username']) ?>"><button class="btn btn-sm btn-outline" name="action" value="staff_toggle"><?= (int) $s['active'] ? 'Switch off' : 'Switch on' ?></button></form>
@@ -142,6 +157,7 @@ admin_head('Settings', 'settings');
       <form method="post" class="ad-form" style="margin-top:12px" autocomplete="off"><?= csrf_field() ?>
         <div><label>Username</label><input type="text" name="username" required></div>
         <div><label>Name</label><input type="text" name="name"></div>
+        <div><label>Can see</label><select name="role"><?php foreach (STAFF_ROLES as $rk => $rl): ?><option value="<?= $rk ?>"<?= $rk === 'inspector' ? ' selected' : '' ?>><?= e($rl) ?></option><?php endforeach; ?></select></div>
         <div><label>Password (10+ characters)</label><input type="text" name="password" minlength="10" autocomplete="off" required></div>
         <div class="full"><button class="btn btn-sm" name="action" value="staff_add">Add</button></div>
       </form></details>
