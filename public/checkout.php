@@ -18,6 +18,7 @@ $form = [
     'first' => '', 'last' => '', 'email' => '', 'phone' => '',
     'currency' => 'eur',
     'terms' => false,
+    'code' => strtoupper(mb_substr(trim((string) ($_GET['code'] ?? '')), 0, 40)),
 ];
 $errors = [];
 
@@ -37,6 +38,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $form['currency'] = 'eur';
     }
     $form['terms'] = !empty($_POST['terms']);
+    $form['code'] = strtoupper(mb_substr(trim((string) ($_POST['code'] ?? '')), 0, 40));
+    $discount = null;
+    if ($form['code'] !== '' && $form['card'] !== '') {
+        $discount = discount_find($form['code']);
+        if (!$discount) {
+            $errors[] = t('co.code.bad');
+        }
+    }
 
     if (!csrf_check()) {
         $errors[] = t('co.err.session');
@@ -80,6 +89,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$holders && !$holderError) {
             $errors[] = t('co.err.name');
         }
+        if ($holders && ($ageError = card_age_error($form['card'], $holders))) {
+            $errors[] = $ageError;
+        }
         if (!$form['born']) {
             $errors[] = t('co.err.born');
         }
@@ -109,6 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'email' => $form['email'],
                 'phone' => $form['phone'],
                 'currency' => $form['currency'],
+                'discount' => $discount,
             ]);
             header('Location: /pay.php?' . http_build_query(['o' => $orderId, 's' => order_sig($orderId)]));
             exit;
@@ -152,6 +165,11 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
     <?php endif; ?>
 
     <style>
+      .code-box { margin: 4px 0 12px; }
+      .code-row { display: flex; gap: 6px; margin-top: 4px; }
+      .code-row input { flex: 1; min-width: 0; text-transform: uppercase; padding: 9px 11px; border: 1px solid var(--line, #cfd9ca); border-radius: 10px; font: inherit; }
+      .code-ok { color: #1c5a1d; font-weight: 600; } .code-bad { color: #8a2216; font-weight: 600; }
+      .sum-disc span:last-child { color: #1c5a1d; font-weight: 700; }
       #len-pick .len-body { padding: 18px 6px 14px; }
       #len-pick .len-price { font-size: 1.35rem; margin-top: 2px; }
       .card-pick .pick-body { min-height: 0; }
@@ -254,6 +272,12 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
             <?php if (sentoo_ready()): ?><label><input type="radio" name="currency" value="xcg"<?= $form['currency'] === 'xcg' ? ' checked' : '' ?>> ƒ XCG</label><?php endif; ?>
           </div>
           <ul class="sum-lines" id="sum-lines"></ul>
+          <?php $preDisc = $form['code'] !== '' ? discount_find($form['code']) : null; ?>
+          <div class="code-box" id="code-box">
+            <label for="code" class="small"><?= e(t('co.code')) ?></label>
+            <div class="code-row"><input id="code" name="code" type="text" autocomplete="off" autocapitalize="characters" value="<?= e($form['code']) ?>" data-pct="<?= $preDisc ? (float) $preDisc['percent'] : 0 ?>"><button type="button" class="btn btn-sm btn-outline" id="code-apply"><?= e(t('co.code.apply')) ?></button></div>
+            <p class="small" id="code-msg" aria-live="polite"><?= $preDisc ? e(t('co.code.ok', ['p' => (float) $preDisc['percent']])) : '' ?></p>
+          </div>
           <p class="sum-total"><span><?= e(t('co.total')) ?></span> <strong id="sum-total">–</strong></p>
           <label class="check">
             <input type="checkbox" name="terms" value="1"<?= $form['terms'] ? ' checked' : '' ?> required>
@@ -309,11 +333,29 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
     form.querySelectorAll('[data-eur]').forEach(function (el) { el.textContent = el.dataset[cur] || el.dataset.eur; });
     var lines = [], total = 0;
     if (len) { lines.push([prices[card].label + ' · ' + len.label, len[cur]]); total += len[cur]; }
+    document.getElementById('code-box').hidden = card === 'none';
+    var pct = Math.min(90, parseFloat(codeIn.dataset.pct) || 0);
+    if (len && pct > 0) { var off = Math.round(len[cur] * pct) / 100; lines.push([codeLine.replace('{code}', codeIn.value.trim().toUpperCase()), -off]); total -= off; }
     if (withEsim) { lines.push([esim.label, esim[cur]]); total += esim[cur]; }
     var ul = document.getElementById('sum-lines'); ul.textContent = '';
-    lines.forEach(function (l) { var li = document.createElement('li'); var a = document.createElement('span'); a.textContent = l[0]; var b = document.createElement('span'); b.textContent = fmt(l[1], cur); li.append(a, b); ul.append(li); });
+    lines.forEach(function (l) { var li = document.createElement('li'); var a = document.createElement('span'); a.textContent = l[0]; var b = document.createElement('span'); b.textContent = (l[1] < 0 ? '−' : '') + fmt(Math.abs(l[1]), cur); if (l[1] < 0) { li.className = 'sum-disc'; } li.append(a, b); ul.append(li); });
     document.getElementById('sum-total').textContent = fmt(total, cur);
   }
+  var codeIn = document.getElementById('code'), codeMsg = document.getElementById('code-msg');
+  var codeLine = <?= json_encode(t('co.code.line'), JSON_HEX_TAG) ?>, codeOk = <?= json_encode(t('co.code.ok'), JSON_HEX_TAG) ?>, codeBad = <?= json_encode(t('co.code.bad'), JSON_HEX_TAG) ?>;
+  function applyCode() {
+    var v = codeIn.value.trim();
+    if (!v) { codeIn.dataset.pct = 0; codeMsg.textContent = ''; update(); return; }
+    fetch('/discount.php?code=' + encodeURIComponent(v), {headers: {Accept: 'application/json'}}).then(function (r) { return r.json(); }).then(function (d) {
+      codeIn.dataset.pct = d.ok ? d.percent : 0;
+      codeMsg.textContent = d.ok ? codeOk.replace('{p}', d.percent) : codeBad;
+      codeMsg.className = 'small ' + (d.ok ? 'code-ok' : 'code-bad');
+      update();
+    }).catch(function () {});
+  }
+  document.getElementById('code-apply').addEventListener('click', applyCode);
+  codeIn.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); applyCode(); } });
+  codeIn.addEventListener('input', function () { if (codeIn.dataset.pct !== '0') { codeIn.dataset.pct = 0; codeMsg.textContent = ''; update(); } });
   form.addEventListener('change', update);
   // The buyer is usually card holder 1: copy that name into First/Last name until they are edited by hand.
   var h0 = document.getElementById('h0'), fn = document.getElementById('first'), ln = document.getElementById('last');

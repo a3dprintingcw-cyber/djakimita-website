@@ -30,6 +30,79 @@ admin_post(function () use (&$id, $db, $days, $cardTypes) {
         throw new RuntimeException('Partner not found');
     }
     switch ($action) {
+        case 'video':
+            $url = trim((string) $_POST['video_url']);
+            if ($url !== '' && !preg_match('~^https?://~i', $url)) {
+                $url = 'https://' . $url;
+            }
+            $db->prepare('INSERT INTO partner_extra (company_id, video_url) VALUES (:c, :v) ON DUPLICATE KEY UPDATE video_url = VALUES(video_url)')
+                ->execute(['c' => $id, 'v' => mb_substr($url, 0, 500)]);
+            admin_log('partner_video', '#' . $id . ' ' . $p['name']);
+            flash($url === '' ? 'Video removed.' : 'Video saved. It shows on the partner page.');
+            break;
+        case 'login_add':
+            $u = trim((string) $_POST['username']);
+            $pw = (string) $_POST['password'];
+            if (!preg_match('/^[A-Za-z0-9._@-]{3,60}$/', $u)) {
+                throw new RuntimeException('Username: 3 to 60 letters, numbers, dots or dashes. No spaces.');
+            }
+            if (mb_strlen($pw) < 8) {
+                throw new RuntimeException('The password needs at least 8 characters.');
+            }
+            $dup = $db->prepare('SELECT id FROM users WHERE LOWER(name) = LOWER(:n)');
+            $dup->execute(['n' => $u]);
+            if ($dup->fetchColumn()) {
+                throw new RuntimeException('That username is already taken. Try another one.');
+            }
+            $db->prepare('INSERT INTO users (name, password, users_type_id, active) VALUES (:n, :p, 2, 1)')
+                ->execute(['n' => $u, 'p' => password_hash($pw, PASSWORD_BCRYPT)]);
+            $uid = (int) $db->lastInsertId();
+            $db->prepare('INSERT INTO users_properties (voucher_company_id, user_id) VALUES (:c, :u)')->execute(['c' => $id, 'u' => $uid]);
+            admin_log('partner_login_added', $u . ' for #' . $id . ' ' . $p['name']);
+            flash('Login ' . $u . ' made. Give the password to the partner in person or by phone. They can change it themselves after logging in.');
+            break;
+        case 'login_pw':
+            $pw = (string) $_POST['password'];
+            if (mb_strlen($pw) < 8) {
+                throw new RuntimeException('The password needs at least 8 characters.');
+            }
+            $db->prepare('UPDATE users u JOIN users_properties up ON up.user_id = u.id AND up.voucher_company_id = :c SET u.password = :p WHERE u.id = :u')
+                ->execute(['p' => password_hash($pw, PASSWORD_BCRYPT), 'u' => (int) $_POST['user'], 'c' => $id]);
+            admin_log('partner_login_password', 'user #' . (int) $_POST['user'] . ' of #' . $id);
+            flash('New password set.');
+            break;
+        case 'login_toggle':
+            $db->prepare('UPDATE users u JOIN users_properties up ON up.user_id = u.id AND up.voucher_company_id = :c SET u.active = 1 - u.active WHERE u.id = :u')
+                ->execute(['u' => (int) $_POST['user'], 'c' => $id]);
+            admin_log('partner_login_toggled', 'user #' . (int) $_POST['user'] . ' of #' . $id);
+            flash('Updated.');
+            break;
+        case 'delete':
+            $used = (int) $db->query('SELECT COUNT(*) FROM client_package_info WHERE company_id = ' . (int) $id)->fetchColumn();
+            if ($used > 0) {
+                throw new RuntimeException('This partner has been used ' . $used . ' times by card holders, so it cannot be deleted (the history would break). Untick "Show this partner" instead: then nobody sees it.');
+            }
+            if (trim((string) ($_POST['confirm'] ?? '')) !== trim((string) $p['name'])) {
+                throw new RuntimeException('Type the exact partner name to delete it.');
+            }
+            $db->beginTransaction();
+            foreach (['DELETE FROM voucher_company_images WHERE company_id = :c', 'DELETE FROM voucher_company_info_deals WHERE company_id = :c',
+                      'DELETE FROM voucher_package_amount WHERE v_company_id = :c', 'DELETE FROM partner_extra WHERE company_id = :c',
+                      'DELETE p FROM partner_visit_photos p JOIN partner_visits v ON v.id = p.visit_id WHERE v.company_id = :c',
+                      'DELETE FROM partner_visits WHERE company_id = :c',
+                      'DELETE u FROM users u JOIN users_properties up ON up.user_id = u.id WHERE up.voucher_company_id = :c AND NOT EXISTS (SELECT 1 FROM users_properties o WHERE o.user_id = u.id AND o.voucher_company_id <> :c2)',
+                      'DELETE FROM users_properties WHERE voucher_company_id = :c', 'DELETE FROM voucher_company WHERE id = :c'] as $sql) {
+                $params = ['c' => $id];
+                if (str_contains($sql, ':c2')) {
+                    $params['c2'] = $id;
+                }
+                $db->prepare($sql)->execute($params);
+            }
+            $db->commit();
+            admin_log('partner_deleted', '#' . $id . ' ' . $p['name']);
+            flash($p['name'] . ' is deleted.');
+            header('Location: /admin/partners.php');
+            exit;
         case 'save':
             $name = trim((string) $_POST['name']);
             if ($name === '') {
@@ -151,6 +224,19 @@ if ($id) {
         $deals[(int) $row['voucher_id']] = $row;
     }
     $num = fn($v) => $v === null || (float) $v == 0.0 ? '' : rtrim(rtrim(number_format((float) $v, 2, '.', ''), '0'), '.');
+    $video = partner_video($id);
+    $logins = [];
+    try {
+        $l = $db->prepare('SELECT u.id, u.name, u.active, u.users_type_id FROM users u JOIN users_properties up ON up.user_id = u.id WHERE up.voucher_company_id = :c ORDER BY u.name');
+        $l->execute(['c' => $id]);
+        $logins = $l->fetchAll();
+    } catch (Throwable $e) {
+    }
+    $usedCount = 0;
+    try {
+        $usedCount = (int) $db->query('SELECT COUNT(*) FROM client_package_info WHERE company_id = ' . (int) $id)->fetchColumn();
+    } catch (Throwable $e) {
+    }
 
     admin_head($p['name'], 'partners');
     ?>
@@ -219,6 +305,56 @@ if ($id) {
         <button class="btn btn-sm" name="action" value="photo_add">Upload</button>
       </form>
     </div>
+
+    <form method="post" class="ad-box ad-form"><?= csrf_field() ?>
+      <h2 class="full" style="margin-top:0">Video</h2>
+      <div class="full"><label>YouTube or Vimeo link (shows as a video on the partner page). Instagram or TikTok links show as a button.</label>
+        <input type="text" name="video_url" value="<?= e($video) ?>" placeholder="https://www.youtube.com/watch?v=…"></div>
+      <div class="full ad-actions"><button class="btn btn-sm" name="action" value="video">Save video</button><?php if ($video): ?> <a href="<?= e($video) ?>" target="_blank" rel="noopener">Open ↗</a><?php endif; ?></div>
+    </form>
+
+    <div class="ad-two">
+      <div class="ad-box">
+        <h2 style="margin-top:0">QR code for the counter</h2>
+        <p class="ad-muted">Customers scan this with the app at the partner. Print it and put it where people can see it.</p>
+        <?php if ((int) $p['active']): ?>
+          <img src="/admin/qr.php?id=<?= $id ?>" alt="QR code" width="160" height="160" style="display:block;margin:8px 0;image-rendering:pixelated">
+          <div class="ad-actions"><a class="btn btn-sm" href="/admin/qr.php?id=<?= $id ?>&amp;download=1">⬇ Download QR</a> <a class="btn btn-sm btn-outline" href="/admin/qr.php?id=<?= $id ?>&amp;poster=1" target="_blank">Print poster</a></div>
+        <?php else: ?><p class="ad-muted">Switch the partner on first.</p><?php endif; ?>
+      </div>
+      <div class="ad-box">
+        <h2 style="margin-top:0">Partner logins</h2>
+        <p class="ad-muted">For the partner's staff: to log in to the partner dashboard and scan cards. After logging in, they can change their own password there (Change password).</p>
+        <?php foreach ($logins as $lg): ?>
+          <div class="ad-actions" style="margin-top:8px">
+            <strong><?= e($lg['name']) ?></strong> <?= (int) $lg['active'] ? '<span class="ad-tag ok">Active</span>' : '<span class="ad-tag">Off</span>' ?>
+            <form method="post" class="ad-inline"><?= csrf_field() ?><input type="hidden" name="user" value="<?= (int) $lg['id'] ?>"><button class="btn btn-sm btn-outline" name="action" value="login_toggle"><?= (int) $lg['active'] ? 'Switch off' : 'Switch on' ?></button></form>
+            <details class="ad-inline"><summary class="btn btn-sm btn-outline">New password</summary>
+              <form method="post" class="ad-actions"><?= csrf_field() ?><input type="hidden" name="user" value="<?= (int) $lg['id'] ?>">
+                <input class="ad-in" type="text" name="password" minlength="8" placeholder="8+ characters" autocomplete="off" style="width:180px"><button class="btn btn-sm" name="action" value="login_pw">Set</button></form></details>
+          </div>
+        <?php endforeach; ?>
+        <?php if (!$logins): ?><p class="ad-muted">No logins yet.</p><?php endif; ?>
+        <details style="margin-top:12px"><summary class="btn btn-sm">+ New login</summary>
+          <form method="post" class="ad-form" style="margin-top:10px" autocomplete="off"><?= csrf_field() ?>
+            <div><label>Username</label><input type="text" name="username" required autocomplete="off"></div>
+            <div><label>Password (8+ characters)</label><input type="text" name="password" minlength="8" required autocomplete="off"></div>
+            <div class="full"><button class="btn btn-sm" name="action" value="login_add">Make login</button></div>
+          </form></details>
+      </div>
+    </div>
+
+    <details class="ad-box" style="margin-top:8px"><summary class="btn btn-sm btn-outline">Delete this partner</summary>
+      <?php if ($usedCount > 0): ?>
+        <p class="ad-muted" style="margin-top:10px">This partner was used <?= $usedCount ?> times by card holders, so it can't be deleted. Untick <strong>Show this partner</strong> at the top instead: then nobody sees it anymore.</p>
+      <?php else: ?>
+        <form method="post" class="ad-actions" style="margin-top:10px"><?= csrf_field() ?>
+          <span class="ad-muted">This removes the partner, its photos, discounts and logins for good. Type the name to confirm:</span>
+          <input class="ad-in" type="text" name="confirm" placeholder="<?= e(trim($p['name'])) ?>" style="max-width:260px">
+          <button class="btn btn-sm btn-outline" name="action" value="delete" style="color:#8a2216;border-color:#8a2216">Delete for good</button>
+        </form>
+      <?php endif; ?>
+    </details>
     <?php
     admin_foot();
     exit;

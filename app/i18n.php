@@ -37,7 +37,7 @@ function t(string $key, array $vars = []): string
     static $all = null;
     if ($all === null) {
         $all = translations();
-        foreach (['translations_checkout', 'translations_verify', 'translations_account', 'translations_pages', 'translations_faq', 'translations_legal'] as $fn) {
+        foreach (['translations_checkout', 'translations_verify', 'translations_account', 'translations_pages', 'translations_faq', 'translations_legal', 'translations_extra'] as $fn) {
             if (function_exists($fn)) {
                 foreach ($fn() as $l => $strings) {
                     $all[$l] = array_merge($all[$l], $strings);

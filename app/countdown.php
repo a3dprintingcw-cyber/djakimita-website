@@ -22,7 +22,7 @@ const COUNTDOWN_OPEN = [
     'checkout.php', 'pay.php', 'done.php', 'verify.php', 'mollie-webhook.php', 'stripe-webhook.php', 'sentoo-webhook.php',
     'login.php', 'account.php', 'set-password.php', 'forgot-password.php', 'deletedata.php',
     'termsandconditions.php', 'privacy_policy.php', 'img.php', 'robots.txt',
-    'partners.php', 'partner.php',
+    'partners.php', 'partner.php', 'discount.php', 'wheel-spin.php',
 ];
 
 function countdown_texts(): array
@@ -72,6 +72,13 @@ function render_countdown(): void
 {
     $c = countdown_texts();
     $ts = launch_ts();
+    $strip = [];
+    try {
+        $strip = array_values(array_filter(partners(), fn($p) => !empty($p['image_id']) || !empty($p['has_picture'])));
+    } catch (Throwable $e) {
+    }
+    $brand = "Dj'aki mi ta!";
+    $titleHtml = str_replace(e($brand), '<span class="cd-brand">' . e($brand) . '</span>', e($c['title']));
     http_response_code(200);
     header('Cache-Control: no-store');
     ?>
@@ -119,10 +126,23 @@ function render_countdown(): void
     .cd-social a { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; }
     .cd-social a:hover { background: rgba(255,255,255,.18); }
     @media (max-height: 640px) { .cd-note { display: none; } }
+    .cd-brand { display: inline-block; color: var(--gold); font-weight: 800; letter-spacing: .01em; text-shadow: 0 3px 14px rgba(0,0,0,.45); white-space: nowrap; }
+    .cd h1 { text-shadow: 0 2px 12px rgba(0,0,0,.35); line-height: 1.1; }
+    .cd.has-strip { padding-bottom: calc(clamp(64px, 11vh, 96px) + 8px); }
+    .cd-strip { position: fixed; left: 0; right: 0; bottom: 0; height: clamp(64px, 11vh, 96px); overflow: hidden; background: rgba(6,30,8,.55);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border-top: 1px solid rgba(255,255,255,.18); display: flex; align-items: center; }
+    .cd-track { display: flex; gap: 12px; width: max-content; animation: cd-roll var(--dur, 60s) linear infinite; padding-left: 12px; }
+    .cd-strip:hover .cd-track { animation-play-state: paused; }
+    .cd-chip { display: flex; align-items: center; gap: 10px; height: clamp(48px, 8.5vh, 74px); padding: 0 16px 0 0; background: rgba(255,255,255,.12); border-radius: 999px; color: #fff; text-decoration: none; white-space: nowrap; font-weight: 700; font-size: clamp(.8rem, 1.6vh, .95rem); }
+    .cd-chip { flex: none; }
+    .cd-chip img { height: 100%; width: auto; aspect-ratio: 1; flex: none; object-fit: cover; border-radius: 50%; border: 2px solid rgba(255,255,255,.8); }
+    .cd-chip:hover { background: rgba(255,255,255,.25); color: #fff; }
+    @keyframes cd-roll { to { transform: translateX(-50%); } }
+    @media (prefers-reduced-motion: reduce) { .cd-strip { overflow-x: auto; } .cd-track { animation: none; } }
   </style>
 </head>
 <body>
-<main class="cd">
+<main class="cd<?= count($strip) >= 4 ? ' has-strip' : '' ?>">
   <div class="cd-box">
     <div class="cd-top">
       <?php $img = __DIR__ . '/../public_html/assets/img/'; $img2 = __DIR__ . '/../public/assets/img/'; ?>
@@ -136,7 +156,7 @@ function render_countdown(): void
       <?php endif; ?>
     </div>
     <span class="cd-kicker"><?= e($c['kicker']) ?></span>
-    <h1><?= e($c['title']) ?></h1>
+    <h1><?= $titleHtml ?></h1>
     <p class="cd-text"><?= e($c['text']) ?></p>
 
     <div class="cd-clock" id="cd" data-end="<?= $ts * 1000 ?>" aria-live="off">
@@ -162,6 +182,16 @@ function render_countdown(): void
     </div>
   </div>
 </main>
+<?php if (count($strip) >= 4): ?>
+<nav class="cd-strip" aria-label="<?= e($c['partners']) ?>">
+  <div class="cd-track" style="--dur:<?= max(30, count($strip) * 4) ?>s">
+    <?php foreach ([0, 1] as $copy): foreach ($strip as $p): ?>
+      <a class="cd-chip" href="/partner.php?id=<?= (int) $p['id'] ?>"<?= $copy ? ' aria-hidden="true" tabindex="-1"' : '' ?>><img src="<?= e(partner_image_url($p, 's')) ?>" alt="" loading="lazy" width="74" height="74"><?= e($p['name']) ?><?= (float) $p['best_percent'] > 0 ? ' · ' . e(discount_label($p['best_percent'])) : '' ?></a>
+    <?php endforeach; endforeach; ?>
+  </div>
+</nav>
+<?php endif; ?>
+<?= jingle_html() ?>
 <script>
 (function () {
   var box = document.getElementById('cd'), end = +box.dataset.end, el = {};

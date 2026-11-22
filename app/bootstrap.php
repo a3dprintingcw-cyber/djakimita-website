@@ -104,11 +104,13 @@ require __DIR__ . '/i18n_account.php';
 require __DIR__ . '/i18n_pages.php';
 require __DIR__ . '/i18n_faq.php';
 require __DIR__ . '/i18n_legal.php';
+require __DIR__ . '/i18n_extra.php';
 require __DIR__ . '/data.php';
 require __DIR__ . '/layout.php';
 require __DIR__ . '/payments.php';
 require __DIR__ . '/verify.php';
 require __DIR__ . '/admin.php';
+require __DIR__ . '/extras.php';
 require __DIR__ . '/countdown.php';
 
 countdown_gate();

@@ -150,10 +150,11 @@ function page_footer(): void
     </div>
   </div>
   <div class="wrap foot-bottom">
-    <span>© <?= date('Y') ?> Deals With Discounts. <?= e(t('footer.rights')) ?> · <?= e(t('footer.madeby')) ?> <a href="https://a3dprinting.com" rel="noopener">A3D Printing</a></span>
+    <span>© <?= date('Y') ?> <?= e(rtrim(company_info()['name'] ?: 'Deals With Discounts', '.')) ?>. <?= e(t('footer.rights')) ?><?= company_line() !== '' ? '<br><span class="small">' . e(company_line()) . '</span>' : '' ?> · <?= e(t('footer.madeby')) ?> <a href="https://a3dprinting.com" rel="noopener">A3D Printing</a></span>
     <?php if (!(function_exists('before_launch') && before_launch())): ?><?= lang_switch() ?><?php endif; ?>
   </div>
 </footer>
+<?= jingle_html() ?>
 </body>
 </html>
     <?php

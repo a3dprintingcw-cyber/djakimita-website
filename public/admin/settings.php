@@ -6,6 +6,61 @@ $db = db();
 
 admin_post(function () use ($db, $me) {
     switch ($_POST['action'] ?? '') {
+        case 'notify':
+            $list = array_filter(array_map('trim', explode(',', (string) $_POST['notify_email'])));
+            foreach ($list as $m) {
+                if (!filter_var($m, FILTER_VALIDATE_EMAIL)) {
+                    throw new RuntimeException('"' . $m . '" is not a valid email address.');
+                }
+            }
+            set_setting('notify_email', implode(', ', $list));
+            foreach (['notify_orders', 'notify_esim', 'notify_daily', 'birthday_on'] as $k) {
+                set_setting($k, empty($_POST[$k]) ? '0' : '1');
+            }
+            set_setting('birthday_text', mb_substr(trim((string) $_POST['birthday_text']), 0, 1000));
+            admin_log('notify_settings', implode(', ', $list));
+            flash('Saved.');
+            break;
+        case 'company':
+            set_setting('company_name', mb_substr(trim((string) $_POST['company_name']), 0, 150));
+            set_setting('company_kvk', mb_substr(trim((string) $_POST['company_kvk']), 0, 40));
+            set_setting('company_address', mb_substr(trim((string) $_POST['company_address']), 0, 250));
+            admin_log('company_details');
+            flash('Company details saved. They show at the bottom of every page and in the terms.');
+            break;
+        case 'jingle':
+            set_setting('jingle_on', empty($_POST['jingle_on']) ? '0' : '1');
+            if (!empty($_FILES['jingle']['name'])) {
+                $f = $_FILES['jingle'];
+                if ($f['error'] !== UPLOAD_ERR_OK || $f['size'] > 3 * 1024 * 1024) {
+                    throw new RuntimeException('Upload failed. The sound file can be at most 3 MB.');
+                }
+                $mime = (string) (new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);
+                $ext = ['audio/mpeg' => 'mp3', 'audio/mp3' => 'mp3', 'audio/mp4' => 'm4a', 'audio/x-m4a' => 'm4a', 'video/mp4' => 'm4a', 'audio/ogg' => 'ogg', 'audio/wav' => 'wav', 'audio/x-wav' => 'wav'][$mime] ?? null;
+                if (!$ext) {
+                    throw new RuntimeException('Use an MP3, M4A, OGG or WAV file.');
+                }
+                $dir = public_dir() . '/assets/media';
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0755, true);
+                }
+                foreach (['mp3', 'm4a', 'ogg', 'wav'] as $old) {
+                    @unlink($dir . '/jingle.' . $old);
+                }
+                if (!move_uploaded_file($f['tmp_name'], $dir . '/jingle.' . $ext)) {
+                    throw new RuntimeException('Could not save the file.');
+                }
+                @chmod($dir . '/jingle.' . $ext, 0644);
+            }
+            if (!empty($_POST['jingle_remove'])) {
+                foreach (['mp3', 'm4a', 'ogg', 'wav'] as $old) {
+                    @unlink(public_dir() . '/assets/media/jingle.' . $old);
+                }
+                set_setting('jingle_on', '0');
+            }
+            admin_log('jingle', setting('jingle_on', '0') === '1' ? 'on' : 'off');
+            flash('Saved.');
+            break;
         case 'launch':
             if (!empty($_POST['no_countdown'])) {
                 set_setting('launch_at', '');
@@ -118,6 +173,38 @@ admin_head('Settings', 'settings');
   <label class="check full"><input type="checkbox" name="no_countdown" value="1"<?= $launch ? '' : ' checked' ?>> <span>No countdown: open the full website now</span></label>
   <div class="full ad-actions"><button class="btn btn-sm" name="action" value="launch" onclick="return document.querySelector('[name=no_countdown]').checked ? confirm('Open the full website right now?') : true">Save</button>
     <span class="ad-muted"><?= $launch && strtotime($launch) > time() ? 'Countdown is running.' : 'The full website is open.' ?></span></div>
+</form>
+
+<?php $ci = company_info(); ?>
+<form method="post" class="ad-box ad-form"><?= csrf_field() ?>
+  <h2 class="full" style="margin-top:0">Emails to the team</h2>
+  <div class="full"><label>Send to (more addresses: separate with a comma)</label><input type="text" name="notify_email" value="<?= e(implode(', ', staff_emails())) ?>"></div>
+  <label class="check full"><input type="checkbox" name="notify_orders" value="1"<?= setting('notify_orders', '1') === '1' ? ' checked' : '' ?>> <span>Email me when a card is bought</span></label>
+  <label class="check full"><input type="checkbox" name="notify_esim" value="1"<?= setting('notify_esim', '1') === '1' ? ' checked' : '' ?>> <span>Email me when an eSIM is bought</span></label>
+  <label class="check full"><input type="checkbox" name="notify_daily" value="1"<?= setting('notify_daily', '1') === '1' ? ' checked' : '' ?>> <span>Every morning: summary of yesterday (sales, which partners were visited, app views)</span></label>
+  <h2 class="full">Birthday message</h2>
+  <label class="check full"><input type="checkbox" name="birthday_on" value="1"<?= setting('birthday_on', '1') === '1' ? ' checked' : '' ?>> <span>Send card holders an email on their birthday (only people with an active card)</span></label>
+  <div class="full"><label>Message (leave empty for the standard text)</label><textarea name="birthday_text" rows="3" placeholder="Today is your day! The whole Dj'aki mi ta! team wishes you a happy birthday."><?= e((string) setting('birthday_text', '')) ?></textarea></div>
+  <div class="full ad-actions"><button class="btn btn-sm" name="action" value="notify">Save</button></div>
+</form>
+
+<form method="post" class="ad-box ad-form"><?= csrf_field() ?>
+  <h2 class="full" style="margin-top:0">Company details</h2>
+  <p class="full ad-muted">Shown at the bottom of every page and in the terms and privacy pages.</p>
+  <div><label>Legal company name</label><input type="text" name="company_name" value="<?= e($ci['name']) ?>"></div>
+  <div><label>Chamber of Commerce (KvK) number</label><input type="text" name="company_kvk" value="<?= e($ci['kvk']) ?>"></div>
+  <div class="full"><label>Address</label><input type="text" name="company_address" value="<?= e($ci['address']) ?>"></div>
+  <div class="full ad-actions"><button class="btn btn-sm" name="action" value="company">Save</button></div>
+</form>
+
+<form method="post" enctype="multipart/form-data" class="ad-box ad-form"><?= csrf_field() ?>
+  <h2 class="full" style="margin-top:0">Jingle</h2>
+  <p class="full ad-muted">Plays once when someone opens the website. Phones and browsers only allow sound after the visitor taps or clicks once, so it starts at their first tap.</p>
+  <?php if ($jf = jingle_file()): ?><div class="full"><audio controls src="<?= e($jf) ?>?v=<?= (int) @filemtime(public_dir() . $jf) ?>"></audio></div><?php endif; ?>
+  <div><label>Sound file (MP3, max 3 MB)</label><input type="file" name="jingle" accept="audio/*"></div>
+  <label class="check full"><input type="checkbox" name="jingle_on" value="1"<?= setting('jingle_on', '0') === '1' ? ' checked' : '' ?>> <span>Play the jingle on the website</span></label>
+  <?php if ($jf): ?><label class="check full"><input type="checkbox" name="jingle_remove" value="1"> <span>Remove the jingle</span></label><?php endif; ?>
+  <div class="full ad-actions"><button class="btn btn-sm" name="action" value="jingle">Save</button></div>
 </form>
 
 <form method="post" class="ad-box ad-form" autocomplete="off"><?= csrf_field() ?>

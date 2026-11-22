@@ -50,6 +50,7 @@ function legal_text(string $page, string $lang): array
         ]],
         ['3. Who can get a card', [
             'Cards are only for people born in Curaçao. For a family card (up to 5 people), at least one parent must be born in Curaçao.',
+            'Ages: Kids card 0 to 12, Teen card 13 to 17, Adult card 18 and up, Senior card 60 and up. A family card can have up to 3 children aged 17 or younger. Age is counted by year of birth.',
             'The buyer must be 18 or older. Cards for children and teens are bought by a parent or guardian.',
         ]],
         ['4. The one-time check', [
@@ -61,7 +62,7 @@ function legal_text(string $page, string $lang): array
             'Each partner decides its own discount. Discounts and partners can change. A discount has no cash value and cannot be combined with other offers unless the partner says so.',
         ]],
         ['6. Prices and payment', [
-            'Prices are shown on the website in euro or US dollar. Payment is handled by Mollie. We never see or store your full card details.',
+            'Prices are shown on the website in euro, US dollar or Caribbean guilder. Payment is handled by Mollie, or by Sentoo for guilders. We never see or store your full card details.',
         ]],
         ['7. No refunds', [
             'Once bought, a card cannot be cancelled or refunded, except where the law says otherwise.',
@@ -92,6 +93,7 @@ function legal_text(string $page, string $lang): array
         ]],
         ['3. Wie een kaart kan krijgen', [
             'Kaarten zijn alleen voor mensen die op Curaçao geboren zijn. Voor een gezinskaart (maximaal 5 personen) moet minstens één ouder op Curaçao geboren zijn.',
+            'Leeftijden: Kids-kaart 0 tot 12, Teen-kaart 13 tot 17, Adult-kaart 18 en ouder, Senior-kaart 60 en ouder. Op een gezinskaart passen maximaal 3 kinderen tot en met 17 jaar. De leeftijd telt per geboortejaar.',
             'De koper moet 18 jaar of ouder zijn. Kaarten voor kinderen en tieners worden gekocht door een ouder of voogd.',
         ]],
         ['4. De eenmalige controle', [
@@ -103,7 +105,7 @@ function legal_text(string $page, string $lang): array
             'Elke partner bepaalt zijn eigen korting. Kortingen en partners kunnen veranderen. Een korting heeft geen geldwaarde en is niet te combineren met andere acties, tenzij de partner dat aangeeft.',
         ]],
         ['6. Prijzen en betaling', [
-            'Prijzen staan op de website in euro of Amerikaanse dollar. De betaling loopt via Mollie. Wij zien en bewaren nooit je volledige kaartgegevens.',
+            'Prijzen staan op de website in euro, Amerikaanse dollar of Caribische gulden. De betaling loopt via Mollie, of via Sentoo bij guldens. Wij zien en bewaren nooit je volledige kaartgegevens.',
         ]],
         ['7. Geen terugbetaling', [
             'Een gekochte kaart kan niet geannuleerd of terugbetaald worden, behalve als de wet anders bepaalt.',
@@ -229,8 +231,13 @@ function render_legal(string $page): void
     <?php if (t('lg.paponly') !== '' && t('lg.paponly') !== 'lg.paponly'): ?><p class="hint"><?= e(t('lg.paponly')) ?></p><?php endif; ?>
     <?php foreach ($sections as [$h, $paras]): ?>
       <h2 class="h3"><?= e($h) ?></h2>
-      <?php foreach ($paras as $p): ?>
-        <p<?= str_starts_with($p, '[') ? ' class="todo"' : '' ?>><?= str_replace('contact@djakimita.com', '<a href="mailto:contact@djakimita.com">contact@djakimita.com</a>', e($p)) ?></p>
+      <?php foreach ($paras as $p):
+          if (str_starts_with($p, '[')) {
+              // Placeholder for the company details: filled in from Settings in the backend
+              if (company_line() !== '') { ?><p><?= e(company_line()) ?></p><?php }
+              continue;
+          } ?>
+        <p><?= str_replace('contact@djakimita.com', '<a href="mailto:contact@djakimita.com">contact@djakimita.com</a>', e($p)) ?></p>
       <?php endforeach; ?>
     <?php endforeach; ?>
   </div>

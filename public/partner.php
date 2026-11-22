@@ -47,6 +47,7 @@ page_header($p['name'] . " · Dj'aki mi ta!", 'partners', mb_substr(strip_tags((
         <?php if ($best > 0): ?><span class="badge badge-inline"><?= e(discount_label($best)) ?></span><?php endif; ?>
         <h1><?= e($p['name']) ?></h1>
         <div class="desc"><?= nl2br(e(trim((string) $p['description']))) ?></div>
+        <?php if ($video = partner_video((int) $p['id'])): ?><div class="p-video"><?= video_embed($video, t('p.video')) ?></div><?php endif; ?>
 
         <?php if ($p['deals']): ?>
           <div class="box">
@@ -105,6 +106,7 @@ page_header($p['name'] . " · Dj'aki mi ta!", 'partners', mb_substr(strip_tags((
   <button type="button" class="lbox-n" aria-label="Next">&#8250;</button>
 </div>
 <style>
+.p-video{margin:14px 0}.p-video .video{position:relative;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#000}.p-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .gallery a.lb{display:block;cursor:zoom-in}.gallery a.lb[hidden]{display:none}
 .lbox{position:fixed;inset:0;z-index:1000;background:rgba(10,20,12,.92);display:flex;align-items:center;justify-content:center}
 .lbox[hidden]{display:none}

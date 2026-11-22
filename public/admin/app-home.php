@@ -88,10 +88,10 @@ $partners = $partners->fetchAll();
 
 $linkFields = function (string $type, string $value, string $prefix) use ($partners): string {
     ob_start(); ?>
-    <div><label>When tapped, open</label>
+    <div><label>When someone taps it, open</label>
       <select name="<?= $prefix ?>_type" onchange="adLink(this)">
-        <option value="url"<?= $type === 'url' ? ' selected' : '' ?>>A web page</option>
-        <option value="company"<?= $type === 'company' ? ' selected' : '' ?>>A partner in the app</option>
+        <option value="url"<?= $type === 'url' ? ' selected' : '' ?>>A website (link)</option>
+        <option value="company"<?= $type === 'company' ? ' selected' : '' ?>>A partner's page in the app</option>
       </select></div>
     <div class="lk-url"<?= $type === 'url' ? '' : ' hidden' ?>><label>Web address</label><input type="text" data-v name="<?= $prefix ?>_value" value="<?= $type === 'url' ? e($value) : '' ?>" placeholder="https://djakimita.com"<?= $type === 'url' ? '' : ' disabled' ?>></div>
     <div class="lk-co"<?= $type === 'company' ? '' : ' hidden' ?>><label>Partner</label><select data-v name="<?= $prefix ?>_value"<?= $type === 'company' ? '' : ' disabled' ?>>
@@ -102,6 +102,7 @@ $linkFields = function (string $type, string $value, string $prefix) use ($partn
 admin_head('App home', 'app-home');
 ?>
 <h1>App home screen</h1>
+<p class="ad-muted">What people see first when they open the app: one big picture at the top with a button, and below it a row of banners (ads) they can swipe through.</p>
 <form class="ad-filter" method="get"><select name="country" onchange="this.form.submit()"><?php foreach ($countries as $cid => $cn): ?><option value="<?= $cid ?>"<?= $country === $cid ? ' selected' : '' ?>><?= e($cn) ?></option><?php endforeach; ?></select></form>
 
 <form method="post" enctype="multipart/form-data" class="ad-box ad-form"><?= csrf_field() ?>
@@ -118,25 +119,26 @@ admin_head('App home', 'app-home');
 </form>
 
 <div class="ad-box">
-  <h2 style="margin-top:0">Ads under it</h2>
+  <h2 style="margin-top:0">Banners under the big picture</h2>
+  <p class="ad-muted">Small pictures (ads) below the big picture. When someone taps a banner, the app opens the page you choose here.</p>
   <?php foreach ($ads as $a): ?>
     <form method="post" class="ad-form" style="border-top:1px solid #edf1ea;padding-top:12px;margin-top:12px"><?= csrf_field() ?>
       <input type="hidden" name="country" value="<?= $country ?>"><input type="hidden" name="ad" value="<?= (int) $a['id'] ?>">
       <div><img src="/admin/banner.php?k=ad&amp;id=<?= (int) $a['id'] ?>" alt="" style="width:100%;max-width:260px;border-radius:10px"></div>
       <?= $linkFields((string) $a['link_type'], (string) $a['link_value'], 'link') ?>
-      <div><label>Order (low first)</label><input type="number" name="sort_order" value="<?= (int) $a['sort_order'] ?>"></div>
+      <div><label>Position (1 = first, 2 = second…)</label><input type="number" name="sort_order" value="<?= (int) $a['sort_order'] ?>"></div>
       <label class="check"><input type="checkbox" name="active" value="1"<?= (int) $a['active'] ? ' checked' : '' ?>> <span>Show it</span></label>
       <div class="full ad-actions"><button class="btn btn-sm" name="action" value="ad_save">Save</button>
-        <button class="btn btn-sm btn-outline" name="action" value="ad_delete" onclick="return confirm('Delete this ad?')">Delete</button></div>
+        <button class="btn btn-sm btn-outline" name="action" value="ad_delete" onclick="return confirm('Delete this banner?')">Delete</button></div>
     </form>
   <?php endforeach; ?>
-  <?php if (!$ads): ?><p class="ad-muted">No ads yet.</p><?php endif; ?>
-  <details style="margin-top:14px"><summary class="btn btn-sm">+ Add an ad</summary>
+  <?php if (!$ads): ?><p class="ad-muted">No banners yet.</p><?php endif; ?>
+  <details style="margin-top:14px"><summary class="btn btn-sm">+ Add a banner</summary>
     <form method="post" enctype="multipart/form-data" class="ad-form" style="margin-top:12px"><?= csrf_field() ?>
       <input type="hidden" name="country" value="<?= $country ?>">
       <div><label>Picture</label><input type="file" name="image" accept="image/jpeg,image/png,image/webp" required></div>
       <?= $linkFields('company', '', 'link') ?>
-      <div class="full"><button class="btn btn-sm" name="action" value="ad_add">Add ad</button></div>
+      <div class="full"><button class="btn btn-sm" name="action" value="ad_add">Add banner</button></div>
     </form>
   </details>
 </div>

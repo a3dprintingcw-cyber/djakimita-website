@@ -341,6 +341,14 @@ function create_order(array $in): int
         }
         $items[] = ['package' => CARD_TYPES[$in['card']]['package'], 'amount' => (float) $length[$currency], 'length_id' => $length['id']];
     }
+    // Discount code: a percentage off the card (never the eSIM)
+    $discount = null;
+    if ($in['card'] !== '' && !empty($in['discount'])) {
+        $discount = $in['discount'];
+        $off = round($items[0]['amount'] * min(90, (float) $discount['percent']) / 100, 2);
+        $items[0]['amount'] = round($items[0]['amount'] - $off, 2);
+        $discount['amount'] = $off;
+    }
     if ($in['esim']) {
         $items[] = ['package' => ESIM_PACKAGE, 'amount' => (float) (prices()[ESIM_PRODUCT][$currency] ?? 0)];
     }
@@ -365,6 +373,10 @@ function create_order(array $in): int
         }
     }
     $mainId = $ids[0];
+    if ($discount) {
+        $pdo->prepare('INSERT INTO sale_discounts (sale_id, code_id, code, percent, amount, counted) VALUES (:s, :c, :code, :p, :a, 0)')
+            ->execute(['s' => $mainId, 'c' => $discount['id'], 'code' => $discount['code'], 'p' => $discount['percent'], 'a' => $discount['amount']]);
+    }
 
     // Card holders: name + birthdate (the shop checks these against an ID). No passport numbers.
     if ($in['card'] !== '') {
@@ -476,7 +488,13 @@ function activate_order(string $intentId): int
     $pdo->commit();
 
     if ($activated) {
+        discount_count_used((int) min(array_column($activated, 'id')));
         send_order_email($activated);
+        try {
+            notify_staff_order($activated);
+        } catch (Throwable $e) {
+            error_log('Staff notification failed: ' . $e->getMessage());
+        }
     }
     return count($activated);
 }

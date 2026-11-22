@@ -210,10 +210,14 @@ const ADMIN_MENU = [
     'customers' => ['Customers', 'user'],
     'checks' => ['Card checks', 'check'],
     'partners' => ['Partners', 'pin'],
+    'freebies' => ['Freebies', 'gift'],
     'categories' => ['Categories', 'grid'],
     'prices' => ['Prices', 'tag'],
-    'app-home' => ['App home', 'phone'],
+    'discounts' => ['Discount codes', 'tag'],
+    'app-home' => ['App home screen', 'phone'],
+    'wheel' => ['Spin the wheel', 'gift'],
     'visits' => ['Partner visits', 'pin'],
+    'stats' => ['Charts & data', 'chart'],
     'settings' => ['Settings', 'gear'],
 ];
 const INSPECTOR_PAGES = ['visits'];
@@ -222,6 +226,14 @@ function admin_head(string $title, string $active): void
 {
     $flash = $_SESSION['admin_flash'] ?? null;
     unset($_SESSION['admin_flash']);
+    // Backup for the daily cron job: birthday emails and the morning summary
+    try {
+        if (function_exists('daily_jobs')) {
+            daily_jobs();
+        }
+    } catch (Throwable $e) {
+        error_log('Daily jobs failed: ' . $e->getMessage());
+    }
     $waiting = 0;
     try {
         $waiting = (int) db()->query('SELECT COUNT(*) FROM holder_verifications WHERE status = 0')->fetchColumn()
@@ -275,6 +287,14 @@ function adLink(sel) {
   u.hidden = sel.value !== 'url'; c.hidden = sel.value !== 'company';
   u.querySelector('[data-v]').disabled = u.hidden; c.querySelector('[data-v]').disabled = c.hidden;
 }
+// On phones, tables become cards: each cell gets its column name
+document.querySelectorAll('table.ad-table').forEach(function (t) {
+  var heads = [].map.call(t.querySelectorAll('thead th'), function (th) { return th.textContent.trim(); });
+  t.querySelectorAll('tbody tr').forEach(function (tr) {
+    var i = 0;
+    [].forEach.call(tr.children, function (td) { if (heads[i] && !td.hasAttribute('data-label')) { td.setAttribute('data-label', heads[i]); } i += td.colSpan || 1; });
+  });
+});
 document.querySelectorAll('form[data-confirm]').forEach(function (f) {
   f.addEventListener('submit', function (ev) { if (!confirm(f.dataset.confirm)) { ev.preventDefault(); } });
 });
@@ -354,6 +374,20 @@ a.ad-card:hover{border-color:#3d8b40;box-shadow:0 2px 10px rgba(0,0,0,.06)}
  .ad-main{padding:16px}
  .ad-two{grid-template-columns:1fr}
  .ad dl{grid-template-columns:1fr}
+}
+@media (max-width:700px){
+ .ad h1{font-size:1.4rem}
+ .ad-table{border:0;background:transparent}
+ .ad-table thead{display:none}
+ .ad-table tr{display:block;background:#fff;border:1px solid #e1e8dd;border-radius:12px;margin-bottom:10px;padding:6px 0}
+ .ad-table td{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;justify-content:space-between;border:0;padding:6px 12px}
+ .ad-table td[data-label]::before{content:attr(data-label);font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:#6b786d}
+ .ad-table td:empty{display:none}
+ .ad-table tr:hover td{background:transparent}
+ .ad-table .ad-in,.ad-table input[type=number]{max-width:140px}
+ .ad .btn-sm{padding:9px 14px}
+ .ad-filter input,.ad-filter select{flex:1 1 160px}
+ .ad-form{grid-template-columns:1fr}
 }
 CSS;
 }
