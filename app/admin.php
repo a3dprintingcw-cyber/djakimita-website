@@ -210,6 +210,7 @@ const ADMIN_MENU = [
     'customers' => ['Customers', 'user'],
     'checks' => ['Card checks', 'check'],
     'partners' => ['Partners', 'pin'],
+    'deals' => ['All discounts', 'tag'],
     'freebies' => ['Freebies', 'gift'],
     'categories' => ['Categories', 'grid'],
     'prices' => ['Prices', 'tag'],
