@@ -22,7 +22,7 @@ const COUNTDOWN_OPEN = [
     'checkout.php', 'pay.php', 'done.php', 'verify.php', 'mollie-webhook.php', 'stripe-webhook.php', 'sentoo-webhook.php',
     'login.php', 'account.php', 'set-password.php', 'forgot-password.php', 'deletedata.php',
     'termsandconditions.php', 'privacy_policy.php', 'img.php', 'robots.txt',
-    'partners.php', 'partner.php', 'discount.php', 'wheel-spin.php',
+    'partners.php', 'partner.php', 'discount.php', 'wheel-spin.php', 'contact.php',
 ];
 
 function countdown_texts(): array
@@ -31,10 +31,10 @@ function countdown_texts(): array
         'en' => [
             'kicker' => 'Something new is coming',
             'title' => 'The new Dj\'aki mi ta! is almost here',
-            'text' => 'A brand new website, more partners and your card straight in your phone. Pre-order now and your card is ready on day one.',
+            'text' => 'A brand new website, more partners and your account straight in your phone. Pre-order now and your account is ready on day one.',
             'days' => 'days', 'hours' => 'hours', 'mins' => 'minutes', 'secs' => 'seconds',
-            'cta' => 'Pre-order your card',
-            'note' => 'Pre-ordered cards start on launch day, so you don\'t lose a single day.',
+            'cta' => 'Pre-order your account',
+            'note' => 'Pre-ordered accounts start on launch day, so you don\'t lose a single day.',
             'live' => 'We\'re live! Loading the new site...',
             'login' => 'Already a member? Log in',
             'follow' => 'Follow us so you don\'t miss the launch',
@@ -43,10 +43,10 @@ function countdown_texts(): array
         'nl' => [
             'kicker' => 'Er komt iets nieuws aan',
             'title' => 'De nieuwe Dj\'aki mi ta! is er bijna',
-            'text' => 'Een gloednieuwe website, meer partners en je kaart direct in je telefoon. Bestel nu alvast en je kaart is klaar op dag één.',
+            'text' => 'Een gloednieuwe website, meer partners en je account direct in je telefoon. Bestel nu alvast en je account is klaar op dag één.',
             'days' => 'dagen', 'hours' => 'uur', 'mins' => 'minuten', 'secs' => 'seconden',
-            'cta' => 'Bestel je kaart alvast',
-            'note' => 'Vooraf bestelde kaarten gaan in op de lanceerdag, je mist dus geen enkele dag.',
+            'cta' => 'Bestel je account alvast',
+            'note' => 'Vooraf bestelde accounts gaan in op de lanceerdag, je mist dus geen enkele dag.',
             'live' => 'We zijn live! De nieuwe site wordt geladen...',
             'login' => 'Al lid? Log in',
             'follow' => 'Volg ons en mis de lancering niet',
@@ -55,10 +55,10 @@ function countdown_texts(): array
         'pap' => [
             'kicker' => 'Algu nobo ta bini',
             'title' => 'E Dj\'aki mi ta! nobo ta kasi aki',
-            'text' => 'Un website kompletamente nobo, mas partner i bo karchi direkto den bo telefon. Pre-ordená awor i bo karchi ta kla dia un.',
+            'text' => 'Un website kompletamente nobo, mas partner i bo account direkto den bo telefon. Pre-ordená awor i bo account ta kla dia un.',
             'days' => 'dia', 'hours' => 'ora', 'mins' => 'minüt', 'secs' => 'sekònde',
-            'cta' => 'Pre-ordená bo karchi',
-            'note' => 'Karchinan pre-ordená ta kuminsá dia di lansamentu, asina bo no ta pèrdè ni un dia.',
+            'cta' => 'Pre-ordená bo account',
+            'note' => 'Accountnan pre-ordená ta kuminsá dia di lansamentu, asina bo no ta pèrdè ni un dia.',
             'live' => 'Nos ta live! E website nobo ta kargando...',
             'login' => 'Kaba ta miembro? Log in',
             'follow' => 'Sigui nos pa bo no pèrdè e lansamentu',
@@ -231,6 +231,22 @@ function countdown_gate(): void
     // Staff can look at the full site before launch with ?peek=<preview key>
     if (($_GET['peek'] ?? '') === 'off') {
         unset($_SESSION['peek']);
+    }
+    // Logged-in staff: "Preview the live website" button in the backend
+    if (function_exists('admin_user') && admin_user() !== null) {
+        if (isset($_GET['preview'])) {
+            if ($_GET['preview'] === '1') {
+                $_SESSION['staff_preview'] = 1;
+            } else {
+                unset($_SESSION['staff_preview']);
+                header('Location: /admin/');
+                exit;
+            }
+        }
+        if (!empty($_SESSION['staff_preview'])) {
+            $GLOBALS['staff_preview'] = true;
+            return;
+        }
     }
     $peek = (string) config('countdown_peek', '');
     if ($peek !== '' && (($_GET['peek'] ?? '') === $peek || ($_SESSION['peek'] ?? '') === $peek)) {

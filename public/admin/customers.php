@@ -8,6 +8,34 @@ $cardTypes = [1 => 'Kids', 2 => 'Teen', 3 => 'Adult', 4 => 'Family', 5 => 'Senio
 
 admin_post(function () use ($id, $db, $cardTypes) {
     $action = $_POST['action'] ?? '';
+    if ($action === 'free_new') {
+        // A free account for an influencer, artist or prize winner who is not a customer yet
+        $email = mb_strtolower(trim((string) $_POST['email']));
+        $first = trim((string) $_POST['first']);
+        $last = trim((string) $_POST['last']);
+        $pkg = (int) $_POST['package'];
+        $d = (string) $_POST['expire'];
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || $first === '') {
+            throw new RuntimeException('Fill in at least a first name and a valid email.');
+        }
+        if (!isset($cardTypes[$pkg]) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $d)) {
+            throw new RuntimeException('Pick an account type and an end date.');
+        }
+        [$cid, $isNew] = find_or_create_client($email, $first, $last, trim((string) ($_POST['phone'] ?? '')));
+        $db->prepare('INSERT INTO clients_package (users_id, package_id, expire) VALUES (:u, :p, :d)')->execute(['u' => $cid, 'p' => $pkg, 'd' => $d]);
+        admin_log('card_given', $cardTypes[$pkg] . ' account to customer #' . $cid . ' until ' . $d . ' · ' . trim((string) ($_POST['why'] ?? '')) . ($isNew ? ' (new customer)' : ''));
+        if (!empty($_POST['mail'])) {
+            $token = create_password_token($cid, 24 * 7);
+            $link = rtrim((string) config('base_url'), '/') . '/set-password.php?t=' . $token;
+            brevo_send($email, "Dj'aki mi ta!: you got a free account", dm_mail('Welcome to Dj\'aki mi ta!',
+                '<p>Hi ' . e($first) . ',</p><p>You got a free <strong>' . e($cardTypes[$pkg]) . ' account</strong>, valid until ' . e(date('d-m-Y', strtotime($d))) . '. Enjoy the discounts at our partners on Curaçao!</p>'
+                . '<p>Choose your password with the button below (the link works for 7 days). Then log in to the Dj\'aki mi ta! app with ' . e($email) . '.</p>'
+                . '<p><a href="' . e($link) . '" style="display:inline-block;background:#187c19;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Choose my password</a></p>'));
+        }
+        flash(($isNew ? 'New customer made' : 'This email was already a customer') . ' and the free account is added' . (!empty($_POST['mail']) ? '. They got an email to choose a password.' : '.'));
+        header('Location: /admin/customers.php?id=' . $cid);
+        exit;
+    }
     if ($action === 'esim_done') {
         $db->prepare('UPDATE esim SET confirmed = 2 WHERE id = :id')->execute(['id' => (int) $_POST['esim_id']]);
         admin_log('esim_sent', '#' . (int) $_POST['esim_id']);
@@ -44,18 +72,18 @@ admin_post(function () use ($id, $db, $cardTypes) {
                 throw new RuntimeException('Pick a date.');
             }
             $db->prepare('UPDATE clients_package SET expire = :d WHERE id = :cp AND users_id = :u')->execute(['d' => $d, 'cp' => (int) $_POST['cp'], 'u' => $id]);
-            admin_log('card_end_date', 'card #' . (int) $_POST['cp'] . ' of customer #' . $id . ' → ' . $d);
+            admin_log('card_end_date', 'account #' . (int) $_POST['cp'] . ' of customer #' . $id . ' → ' . $d);
             flash('End date changed.');
             break;
         case 'card_add':
             $pkg = (int) $_POST['package'];
             $d = (string) $_POST['expire'];
             if (!isset($cardTypes[$pkg]) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $d)) {
-                throw new RuntimeException('Pick a card type and an end date.');
+                throw new RuntimeException('Pick an account type and an end date.');
             }
             $db->prepare('INSERT INTO clients_package (users_id, package_id, expire) VALUES (:u, :p, :d)')->execute(['u' => $id, 'p' => $pkg, 'd' => $d]);
-            admin_log('card_given', $cardTypes[$pkg] . ' card to customer #' . $id . ' until ' . $d . ' · ' . trim((string) ($_POST['why'] ?? '')));
-            flash('Card added. It shows in the app right away.');
+            admin_log('card_given', $cardTypes[$pkg] . ' account to customer #' . $id . ' until ' . $d . ' · ' . trim((string) ($_POST['why'] ?? '')));
+            flash('Account added. It shows in the app right away.');
             break;
         case 'reset':
             send_reset_email($id, (string) $c['email']);
@@ -104,7 +132,9 @@ if ($id) {
         admin_foot();
         exit;
     }
-    $cards = $db->prepare('SELECT id, package_id, expire FROM clients_package WHERE users_id = :u ORDER BY expire DESC');
+    $cards = $db->prepare('SELECT cp.id, cp.package_id, cp.expire,
+                                  (SELECT COUNT(*) FROM sale_receits s WHERE s.client_package_id = cp.id AND s.status = 1) paid
+                           FROM clients_package cp WHERE cp.users_id = :u ORDER BY cp.expire DESC');
     $cards->execute(['u' => $id]);
     $cards = $cards->fetchAll();
     $orders = $db->prepare('SELECT MIN(id) id, MIN(dia_orario) d, MAX(status) status, MIN(currency) currency, GROUP_CONCAT(package) packages, token
@@ -121,25 +151,26 @@ if ($id) {
     <h1><?= e(trim($c['username'] . ' ' . $c['lastName']) ?: $c['email']) ?> <?= (int) $c['active'] ? '' : '<span class="ad-tag bad">Blocked</span>' ?></h1>
 
     <div class="ad-box">
-      <h2 style="margin-top:0">Cards</h2>
-      <?php if (!$cards): ?><p class="ad-muted">No cards yet.</p><?php endif; ?>
+      <h2 style="margin-top:0">Accounts</h2>
+      <?php if (!$cards): ?><p class="ad-muted">No accounts yet.</p><?php endif; ?>
       <?php foreach ($cards as $k): $active = $k['expire'] >= date('Y-m-d'); ?>
         <form method="post" class="ad-actions" style="margin-top:6px"><?= csrf_field() ?>
           <input type="hidden" name="cp" value="<?= (int) $k['id'] ?>">
           <strong style="min-width:90px"><?= e(card_name((int) $k['package_id'])) ?></strong>
           <?= $active ? '<span class="ad-tag ok">Active</span>' : '<span class="ad-tag">Ended</span>' ?>
+          <?= (int) $k['paid'] ? '<span class="ad-tag">Paid</span>' : '<span class="ad-tag wait">Free account</span>' ?>
           <span class="ad-muted">valid until</span>
           <input type="date" class="ad-in" style="width:170px" name="expire" value="<?= e($k['expire']) ?>">
           <button class="btn btn-sm btn-outline" name="action" value="card_date">Change end date</button>
         </form>
       <?php endforeach; ?>
       <details style="margin-top:14px">
-        <summary class="btn btn-sm">Give a card (free, influencer, replacement)</summary>
+        <summary class="btn btn-sm">Give an account (free, influencer, replacement)</summary>
         <form method="post" class="ad-form" style="margin-top:12px"><?= csrf_field() ?>
-          <div><label>Card</label><select name="package"><?php foreach ($cardTypes as $pid => $n): ?><option value="<?= $pid ?>"<?= $pid === 3 ? ' selected' : '' ?>><?= e($n) ?></option><?php endforeach; ?></select></div>
+          <div><label>Account</label><select name="package"><?php foreach ($cardTypes as $pid => $n): ?><option value="<?= $pid ?>"<?= $pid === 3 ? ' selected' : '' ?>><?= e($n) ?></option><?php endforeach; ?></select></div>
           <div><label>Valid until</label><input type="date" name="expire" value="<?= e(date('Y-m-d', strtotime('+1 year'))) ?>" required></div>
           <div><label>Reason (for the log)</label><input type="text" name="why" placeholder="e.g. influencer, prize"></div>
-          <div class="full"><button class="btn btn-sm" name="action" value="card_add">Add card</button></div>
+          <div class="full"><button class="btn btn-sm" name="action" value="card_add">Add account</button></div>
         </form>
       </details>
     </div>
@@ -167,7 +198,7 @@ if ($id) {
 
     <h2>Orders</h2>
     <div class="ad-wrap"><table class="ad-table">
-      <thead><tr><th>Order</th><th>Date</th><th>Cards</th><th>Status</th></tr></thead>
+      <thead><tr><th>Order</th><th>Date</th><th>Accounts</th><th>Status</th></tr></thead>
       <tbody><?php foreach ($orders as $o): ?>
         <tr><td><a href="/admin/orders.php?id=<?= (int) $o['id'] ?>">#<?= (int) $o['id'] ?></a></td><td><?= e(admin_date($o['d'], true)) ?></td>
           <td><?= e(implode(', ', array_map(fn($p) => card_name((int) $p), explode(',', (string) $o['packages'])))) ?></td>
@@ -212,13 +243,28 @@ admin_head('Customers', 'customers');
 <h1>Customers</h1>
 <form class="ad-filter" method="get">
   <input name="q" value="<?= e($q) ?>" placeholder="Name, email or phone" style="min-width:260px">
-  <select name="only"><option value="">Everyone</option><option value="active"<?= $only === 'active' ? ' selected' : '' ?>>With an active card</option></select>
+  <select name="only"><option value="">Everyone</option><option value="active"<?= $only === 'active' ? ' selected' : '' ?>>With an active account</option></select>
   <button class="btn btn-sm">Search</button>
   <span class="ad-muted"><?= $total ?> customer<?= $total === 1 ? '' : 's' ?></span>
   <a href="/admin/customers.php?esim=1" style="margin-left:auto">eSIM requests<?= $esimWaiting ? ' <span class="ad-tag wait">' . $esimWaiting . ' to send</span>' : '' ?></a>
 </form>
+<details class="ad-box">
+  <summary class="btn btn-sm">+ Free account (influencer, artist, prize)</summary>
+  <form method="post" class="ad-form" style="margin-top:12px"><?= csrf_field() ?>
+    <p class="full ad-muted" style="margin:0">For someone who should get an account without paying. If the email is already a customer, the account is added to them. It shows as "Free account" in the backend.</p>
+    <div><label>First name</label><input type="text" name="first" required></div>
+    <div><label>Last name</label><input type="text" name="last"></div>
+    <div><label>Email (their login)</label><input type="email" name="email" required></div>
+    <div><label>Phone (optional)</label><input type="text" name="phone"></div>
+    <div><label>Account</label><select name="package"><?php foreach ($cardTypes as $pid => $n): ?><option value="<?= $pid ?>"<?= $pid === 3 ? ' selected' : '' ?>><?= e($n) ?></option><?php endforeach; ?></select></div>
+    <div><label>Valid until</label><input type="date" name="expire" value="<?= e(date('Y-m-d', strtotime('+1 year'))) ?>" required></div>
+    <div class="full"><label>Reason (for the log)</label><input type="text" name="why" placeholder="e.g. influencer @name, artist, prize"></div>
+    <label class="check full"><input type="checkbox" name="mail" value="1" checked> <span>Email them a welcome with a link to choose their password</span></label>
+    <div class="full"><button class="btn btn-sm" name="action" value="free_new">Make free account</button></div>
+  </form>
+</details>
 <div class="ad-wrap"><table class="ad-table">
-  <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Card</th></tr></thead>
+  <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Account</th></tr></thead>
   <tbody><?php foreach ($list as $c): ?>
     <tr><td><a href="/admin/customers.php?id=<?= (int) $c['id'] ?>"><?= e(trim($c['username'] . ' ' . $c['lastName']) ?: '(no name)') ?></a><?= (int) $c['active'] ? '' : ' <span class="ad-tag bad">Blocked</span>' ?></td>
       <td><?= e($c['email']) ?></td><td><?= e($c['phone']) ?></td>

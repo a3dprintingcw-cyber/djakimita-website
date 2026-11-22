@@ -94,9 +94,13 @@ $launch = (string) setting('launch_at', (string) config('launch_at', ''));
 admin_head('Overview', 'index');
 ?>
 <h1>Good <?= (int) date('G') < 12 ? 'morning' : ((int) date('G') < 18 ? 'afternoon' : 'evening') ?>, <?= e($me) ?></h1>
+<?php if (before_launch()): ?>
+  <p class="ad-actions"><a class="btn btn-sm" href="/?preview=1" target="_blank" rel="noopener">See the website as it will look on launch day ↗</a>
+    <span class="ad-muted">Only you see it (while logged in here). Visitors keep seeing the countdown.</span></p>
+<?php endif; ?>
 
 <?php if ($checks || $apps): ?>
-  <p class="ad-flash ok"><a href="/admin/checks.php"><?= $checks ?> card check<?= $checks === 1 ? '' : 's' ?> and <?= $apps ?> partner application<?= $apps === 1 ? '' : 's' ?> waiting →</a></p>
+  <p class="ad-flash ok"><a href="/admin/checks.php"><?= $checks ?> account check<?= $checks === 1 ? '' : 's' ?> and <?= $apps ?> partner application<?= $apps === 1 ? '' : 's' ?> waiting →</a></p>
 <?php endif; ?>
 
 <div class="ad-cards">
@@ -105,7 +109,7 @@ admin_head('Overview', 'index');
   <?php foreach ($money as $m): ?>
     <a class="ad-card" href="/admin/orders.php?status=paid&amp;from=<?= date('Y-m-d', strtotime('-30 days')) ?>"><b><?= e(admin_money((float) $m['total'], $m['cur'] ?: 'eur')) ?></b><span>Sales last 30 days<?= $m['cur'] ? '' : ' (old orders)' ?></span></a>
   <?php endforeach; ?>
-  <a class="ad-card" href="/admin/customers.php?only=active"><b><?= $activeCards ?></b><span>Active cards</span></a>
+  <a class="ad-card" href="/admin/customers.php?only=active"><b><?= $activeCards ?></b><span>Active accounts</span></a>
   <a class="ad-card" href="/admin/customers.php"><b><?= $customers ?></b><span>Customer accounts</span></a>
   <a class="ad-card" href="/admin/partners.php?country=1&amp;show=on"><b><?= $partners ?></b><span>Active partners (Curaçao)</span></a>
   <a class="ad-card" href="/admin/orders.php?status=open&amp;from=<?= date('Y-m-d', strtotime('-2 days')) ?>"><b><?= $unpaid ?></b><span>Started but not paid (48 h)</span></a>
@@ -118,7 +122,7 @@ admin_head('Overview', 'index');
 <h2>Latest orders</h2>
 <div class="ad-wrap">
 <table class="ad-table">
-  <thead><tr><th>Order</th><th>Date</th><th>Email</th><th>Cards</th><th>Paid with</th><th>Status</th></tr></thead>
+  <thead><tr><th>Order</th><th>Date</th><th>Email</th><th>Accounts</th><th>Paid with</th><th>Status</th></tr></thead>
   <tbody>
   <?php foreach ($recent as $o): ?>
     <tr>

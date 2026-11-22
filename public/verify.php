@@ -76,6 +76,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $paid) {
                 }
                 submit_verification($x['h'], $orderId, $face, $idPhoto);
             }
+            try {
+                notify_check_sent($orderId, array_map(fn ($x) => (string) $x['h']['name'], $todo));
+            } catch (Throwable $e) {
+                error_log('check notify: ' . $e->getMessage());
+            }
             header('Location: /verify.php?' . http_build_query(['o' => $orderId, 's' => $sig, 'sent' => 1]));
             exit;
         } catch (InvalidArgumentException $ex) {

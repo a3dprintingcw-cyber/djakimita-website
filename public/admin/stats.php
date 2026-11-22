@@ -170,23 +170,23 @@ admin_head('Charts', 'stats');
   <?php foreach ($money as $m): $net = (float) $m['total'] - ($off[$m['cur']] ?? 0); ?>
     <div class="ad-card"><b><?= e(admin_money($net, $m['cur'])) ?></b><span>Sales in <?= e(strtoupper($m['cur'])) ?><?= !empty($off[$m['cur']]) ? ' (after codes)' : '' ?></span></div>
   <?php endforeach; ?>
-  <div class="ad-card"><b><?= (int) array_sum($scans) ?></b><span>Card used at partners</span></div>
+  <div class="ad-card"><b><?= (int) array_sum($scans) ?></b><span>Account used at partners</span></div>
   <div class="ad-card"><b><?= (int) array_sum($views) ?></b><span>Partner pages opened in the app</span></div>
 </div>
 
 <div class="ad-box"><h2 style="margin-top:0">Paid orders</h2><?= bar_chart($orders, '#3d8b40', 'Paid orders') ?></div>
 <div class="st-grid">
-  <div class="ad-box"><h2 style="margin-top:0">Card used at partners</h2><?= bar_chart($scans, '#e8b84a', 'Card used at partners') ?></div>
+  <div class="ad-box"><h2 style="margin-top:0">Account used at partners</h2><?= bar_chart($scans, '#e8b84a', 'Account used at partners') ?></div>
   <div class="ad-box"><h2 style="margin-top:0">Partner pages opened in the app</h2><?= bar_chart($views, '#5aa0d6', 'App views') ?></div>
 </div>
 
 <div class="st-grid">
-  <div class="ad-box"><h2 style="margin-top:0">Most visited partners</h2><p class="ad-muted">Where the card was scanned most.</p><?= top_list($topScans, '#e8b84a') ?></div>
+  <div class="ad-box"><h2 style="margin-top:0">Most visited partners</h2><p class="ad-muted">Where the account was scanned most.</p><?= top_list($topScans, '#e8b84a') ?></div>
   <div class="ad-box"><h2 style="margin-top:0">Most viewed partners</h2><p class="ad-muted">Opened most in the app: what people find most interesting.</p><?= top_list($topViews, '#5aa0d6') ?></div>
 </div>
 
 <div class="ad-box">
-  <h2 style="margin-top:0">Cards sold in this period</h2>
+  <h2 style="margin-top:0">Accounts sold in this period</h2>
   <?php if (!$byCard): ?><p class="ad-muted">None.</p><?php endif; ?>
   <div class="st-top">
     <?php $mx = max(1, (int) ($byCard[0]['n'] ?? 1)); foreach ($byCard as $b): ?>
@@ -200,11 +200,11 @@ admin_head('Charts', 'stats');
   <h2 style="margin-top:0">Download data</h2>
   <p class="ad-muted">Opens in Excel or Google Sheets. Contains personal data: keep these files safe and delete them when you are done.</p>
   <div class="st-dl">
-    <?php foreach (['orders' => 'Orders', 'customers' => 'Customers', 'cards' => 'Cards', 'holders' => 'Card holders', 'scans' => 'Card use at partners', 'views' => 'App views', 'partners' => 'Partners', 'freebies' => 'Freebies', 'visits' => 'Partner visits', 'codes' => 'Discount codes', 'wheel' => 'Spin the wheel'] as $k => $l): ?>
+    <?php foreach (['orders' => 'Orders', 'customers' => 'Customers', 'cards' => 'Accounts', 'holders' => 'Account holders', 'scans' => 'Account use at partners', 'views' => 'App views', 'partners' => 'Partners', 'freebies' => 'Freebies', 'visits' => 'Partner visits', 'codes' => 'Discount codes', 'wheel' => 'Spin the wheel'] as $k => $l): ?>
       <a class="btn btn-sm btn-outline" href="/admin/export.php?what=<?= $k ?>&amp;from=<?= e($from) ?>&amp;to=<?= e($to) ?>">⬇ <?= e($l) ?></a>
     <?php endforeach; ?>
   </div>
-  <p class="ad-muted" style="margin-top:10px">Orders, card use and app views follow the dates above. The other lists are complete.</p>
+  <p class="ad-muted" style="margin-top:10px">Orders, account use and app views follow the dates above. The other lists are complete.</p>
 </div>
 <?php endif; ?>
 <?php admin_foot();

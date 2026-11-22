@@ -35,10 +35,51 @@ admin_post(function () use (&$id, $db, $days, $cardTypes) {
             if ($url !== '' && !preg_match('~^https?://~i', $url)) {
                 $url = 'https://' . $url;
             }
+            if (preg_match('~^/assets/media/partners/([A-Za-z0-9._-]+)$~', partner_video($id), $m)) {
+                @unlink(public_dir() . '/assets/media/partners/' . $m[1]);
+            }
             $db->prepare('INSERT INTO partner_extra (company_id, video_url) VALUES (:c, :v) ON DUPLICATE KEY UPDATE video_url = VALUES(video_url)')
                 ->execute(['c' => $id, 'v' => mb_substr($url, 0, 500)]);
             admin_log('partner_video', '#' . $id . ' ' . $p['name']);
             flash($url === '' ? 'Video removed.' : 'Video saved. It shows on the partner page.');
+            break;
+        case 'video_upload':
+            $f = $_FILES['video'] ?? null;
+            if (!$f || $f['error'] === UPLOAD_ERR_INI_SIZE || $f['error'] === UPLOAD_ERR_FORM_SIZE) {
+                throw new RuntimeException('The video is too big for the server (max ' . ini_get('upload_max_filesize') . '). Make it shorter or smaller, or put it on YouTube and paste the link.');
+            }
+            if ($f['error'] !== UPLOAD_ERR_OK) {
+                throw new RuntimeException('Upload failed. Please try again.');
+            }
+            $ext = strtolower(pathinfo((string) $f['name'], PATHINFO_EXTENSION));
+            $mime = (string) (new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);
+            if (!in_array($ext, ['mp4', 'webm', 'mov', 'm4v'], true) || strpos($mime, 'video/') !== 0 && $mime !== 'application/octet-stream') {
+                throw new RuntimeException('Use an MP4, MOV or WEBM video.');
+            }
+            $dir = public_dir() . '/assets/media/partners';
+            if (!is_dir($dir) && !@mkdir($dir, 0755, true)) {
+                throw new RuntimeException('Could not make the video folder.');
+            }
+            $name = $id . '-' . bin2hex(random_bytes(4)) . '.' . ($ext === 'mov' ? 'mov' : $ext);
+            if (!move_uploaded_file($f['tmp_name'], $dir . '/' . $name)) {
+                throw new RuntimeException('Could not save the video.');
+            }
+            @chmod($dir . '/' . $name, 0644);
+            $old = partner_video($id);
+            if (preg_match('~^/assets/media/partners/([A-Za-z0-9._-]+)$~', $old, $m)) {
+                @unlink($dir . '/' . $m[1]);
+            }
+            $db->prepare('INSERT INTO partner_extra (company_id, video_url) VALUES (:c, :v) ON DUPLICATE KEY UPDATE video_url = VALUES(video_url)')
+                ->execute(['c' => $id, 'v' => '/assets/media/partners/' . $name]);
+            admin_log('partner_video', '#' . $id . ' ' . $p['name'] . ' (upload)');
+            flash('Video uploaded. It shows on the partner page.');
+            break;
+        case 'note':
+            $note = trim((string) $_POST['note']);
+            $db->prepare('INSERT INTO partner_extra (company_id, note) VALUES (:c, :n) ON DUPLICATE KEY UPDATE note = VALUES(note)')
+                ->execute(['c' => $id, 'n' => mb_substr($note, 0, 2000)]);
+            admin_log('partner_note', '#' . $id . ' ' . $p['name']);
+            flash($note === '' ? 'Note removed.' : 'Saved. The note shows under the description.');
             break;
         case 'login_add':
             $u = trim((string) $_POST['username']);
@@ -80,7 +121,7 @@ admin_post(function () use (&$id, $db, $days, $cardTypes) {
         case 'delete':
             $used = (int) $db->query('SELECT COUNT(*) FROM client_package_info WHERE company_id = ' . (int) $id)->fetchColumn();
             if ($used > 0) {
-                throw new RuntimeException('This partner has been used ' . $used . ' times by card holders, so it cannot be deleted (the history would break). Untick "Show this partner" instead: then nobody sees it.');
+                throw new RuntimeException('This partner has been used ' . $used . ' times by account holders, so it cannot be deleted (the history would break). Untick "Show this partner" instead: then nobody sees it.');
             }
             if (trim((string) ($_POST['confirm'] ?? '')) !== trim((string) $p['name'])) {
                 throw new RuntimeException('Type the exact partner name to delete it.');
@@ -153,8 +194,8 @@ admin_post(function () use (&$id, $db, $days, $cardTypes) {
                 $n++;
             }
             $db->commit();
-            admin_log('partner_deals', '#' . $id . ' ' . $p['name'] . ': ' . $n . ' card types');
-            flash('Discounts saved for ' . $n . ' card type' . ($n === 1 ? '' : 's') . '.');
+            admin_log('partner_deals', '#' . $id . ' ' . $p['name'] . ': ' . $n . ' account types');
+            flash('Discounts saved for ' . $n . ' account type' . ($n === 1 ? '' : 's') . '.');
             break;
         case 'photo_add':
             $files = $_FILES['photos'] ?? null;
@@ -272,10 +313,10 @@ if ($id) {
     </form>
 
     <form method="post" class="ad-box"><?= csrf_field() ?>
-      <h2 style="margin-top:0">Discount per card</h2>
-      <p class="ad-muted">Fill in the normal price and the price with the card, or just the % off. Leave a card empty if it gets no discount. 100% means free.</p>
+      <h2 style="margin-top:0">Discount per account</h2>
+      <p class="ad-muted">Fill in the normal price and the price with the account, or just the % off. Leave an account empty if it gets no discount. 100% means free.</p>
       <div class="ad-wrap"><table class="ad-table" style="max-width:640px">
-        <thead><tr><th>Card</th><th>Normal price</th><th>With card</th><th>% off</th></tr></thead>
+        <thead><tr><th>Account</th><th>Normal price</th><th>With account</th><th>% off</th></tr></thead>
         <tbody><?php foreach ($cardTypes as $pkg => $label): $dl = $deals[$pkg] ?? null; ?>
           <tr><td><strong><?= e($label) ?></strong></td>
             <td><input class="ad-in" name="was[<?= $pkg ?>]" inputmode="decimal" value="<?= e($num($dl['was'] ?? null)) ?>"></td>
@@ -307,10 +348,22 @@ if ($id) {
     </div>
 
     <form method="post" class="ad-box ad-form"><?= csrf_field() ?>
+      <h2 class="full" style="margin-top:0">Please note</h2>
+      <div class="full"><label>Important things customers must know, shown in a yellow box under the description. For example: "Book 24 hours ahead", "Not on Sundays", "Show your ID". Leave empty for none.</label>
+        <textarea name="note" rows="3" maxlength="2000"><?= e(partner_note($id)) ?></textarea></div>
+      <div class="full ad-actions"><button class="btn btn-sm" name="action" value="note">Save note</button></div>
+    </form>
+
+    <form method="post" enctype="multipart/form-data" class="ad-box ad-form"><?= csrf_field() ?>
       <h2 class="full" style="margin-top:0">Video</h2>
+      <?php if ($video && $video[0] === '/'): ?><div class="full"><?= video_embed($video) ?></div><?php endif; ?>
+      <div class="full"><label>Upload a video file from your phone or computer (MP4 or MOV, max <?= e(ini_get('upload_max_filesize')) ?>)</label>
+        <input type="file" name="video" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm,.m4v"></div>
+      <div class="full ad-actions"><button class="btn btn-sm" name="action" value="video_upload">Upload video</button></div>
+      <p class="full ad-muted" style="margin:6px 0 0">Or paste a link instead:</p>
       <div class="full"><label>YouTube or Vimeo link (shows as a video on the partner page). Instagram or TikTok links show as a button.</label>
-        <input type="text" name="video_url" value="<?= e($video) ?>" placeholder="https://www.youtube.com/watch?v=…"></div>
-      <div class="full ad-actions"><button class="btn btn-sm" name="action" value="video">Save video</button><?php if ($video): ?> <a href="<?= e($video) ?>" target="_blank" rel="noopener">Open ↗</a><?php endif; ?></div>
+        <input type="text" name="video_url" value="<?= e($video && $video[0] === '/' ? '' : $video) ?>" placeholder="https://www.youtube.com/watch?v=…"></div>
+      <div class="full ad-actions"><button class="btn btn-sm" name="action" value="video">Save link</button><?php if ($video && $video[0] !== '/'): ?> <a href="<?= e($video) ?>" target="_blank" rel="noopener">Open ↗</a><?php endif; ?><?php if ($video): ?> <button class="btn btn-sm btn-outline" name="action" value="video" onclick="this.form.video_url.value=''">Remove video</button><?php endif; ?></div>
     </form>
 
     <div class="ad-two">
@@ -324,7 +377,7 @@ if ($id) {
       </div>
       <div class="ad-box">
         <h2 style="margin-top:0">Partner logins</h2>
-        <p class="ad-muted">For the partner's staff: to log in to the partner dashboard and scan cards. After logging in, they can change their own password there (Change password).</p>
+        <p class="ad-muted">For the partner's staff: to log in to the partner dashboard and scan accounts. After logging in, they can change their own password there (Change password).</p>
         <?php foreach ($logins as $lg): ?>
           <div class="ad-actions" style="margin-top:8px">
             <strong><?= e($lg['name']) ?></strong> <?= (int) $lg['active'] ? '<span class="ad-tag ok">Active</span>' : '<span class="ad-tag">Off</span>' ?>
@@ -346,7 +399,7 @@ if ($id) {
 
     <details class="ad-box" style="margin-top:8px"><summary class="btn btn-sm btn-outline">Delete this partner</summary>
       <?php if ($usedCount > 0): ?>
-        <p class="ad-muted" style="margin-top:10px">This partner was used <?= $usedCount ?> times by card holders, so it can't be deleted. Untick <strong>Show this partner</strong> at the top instead: then nobody sees it anymore.</p>
+        <p class="ad-muted" style="margin-top:10px">This partner was used <?= $usedCount ?> times by account holders, so it can't be deleted. Untick <strong>Show this partner</strong> at the top instead: then nobody sees it anymore.</p>
       <?php else: ?>
         <form method="post" class="ad-actions" style="margin-top:10px"><?= csrf_field() ?>
           <span class="ad-muted">This removes the partner, its photos, discounts and logins for good. Type the name to confirm:</span>
@@ -365,7 +418,10 @@ if ($id) {
 // ---------------------------------------------------------------------------
 $q = trim((string) ($_GET['q'] ?? ''));
 $country = (int) ($_GET['country'] ?? 1);
-$show = (string) ($_GET['show'] ?? '');
+$show = (string) ($_GET['show'] ?? 'on');
+$cnt = $db->prepare('SELECT SUM(active = 1) a, SUM(active = 0) o FROM voucher_company WHERE country = :co');
+$cnt->execute(['co' => $country === 2 ? 2 : 1]);
+$cnt = $cnt->fetch();
 $where = ['v.country = :co'];
 $params = ['co' => $country === 2 ? 2 : 1];
 if ($q !== '') {
@@ -392,10 +448,16 @@ admin_head('Partners', 'partners');
 <form class="ad-filter" method="get">
   <input name="q" value="<?= e($q) ?>" placeholder="Search by name">
   <select name="country"><?php foreach ($countries as $cid => $cn): ?><option value="<?= $cid ?>"<?= $country === $cid ? ' selected' : '' ?>><?= e($cn) ?></option><?php endforeach; ?></select>
-  <select name="show"><option value="">On and off</option><option value="on"<?= $show === 'on' ? ' selected' : '' ?>>Only on</option><option value="off"<?= $show === 'off' ? ' selected' : '' ?>>Only off</option></select>
+  <input type="hidden" name="show" value="<?= e($show) ?>">
   <button class="btn btn-sm">Search</button>
   <span class="ad-muted"><?= count($list) ?> partners</span>
 </form>
+<nav class="ad-tabs">
+  <?php foreach (['on' => 'On the website (' . (int) $cnt['a'] . ')', 'off' => 'Off / stopped (' . (int) $cnt['o'] . ')', 'all' => 'All'] as $k => $lbl): ?>
+    <a href="?country=<?= $country ?>&amp;show=<?= $k ?><?= $q !== '' ? '&amp;q=' . urlencode($q) : '' ?>" class="<?= $show === $k ? 'on' : '' ?>"><?= e($lbl) ?></a>
+  <?php endforeach; ?>
+</nav>
+<?php if ($show === 'off'): ?><p class="ad-muted">Partners that stopped or are on hold. They are not on the website or in the app. Open one and tick <strong>Show this partner</strong> to put it back.</p><?php endif; ?>
 <details class="ad-box">
   <summary class="btn btn-sm">+ Add a partner</summary>
   <form method="post" class="ad-form" style="margin-top:12px"><?= csrf_field() ?>

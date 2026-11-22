@@ -427,3 +427,19 @@ p { margin: 0 0 1em; }
 @media (max-width: 900px) { .nav-right .btn-sm { white-space: nowrap; padding: 8px 12px; } }
 @media (max-width: 420px) { .brand-name { font-size: 1rem; } .nav-right .btn-sm { font-size: .82rem; } }
 .foot-logo { border-radius: 14px; }
+
+/* Original Dj'aki Mi Ta! wordmark in the header */
+.brand img.brand-word { border-radius: 0; height: 40px; width: auto; }
+@media (max-width: 900px) { .brand img.brand-word { width: auto; height: 34px; } }
+@media (max-width: 380px) { .brand img.brand-word { height: 28px; } }
+
+/* "Please note" box on partner pages */
+.p-note { margin: 16px 0; padding: 14px 16px; border-radius: 14px; background: #fff6d6; border: 1px solid #ecd27a; color: #5a4300; }
+.p-note strong { display: block; text-transform: uppercase; letter-spacing: .04em; font-size: .85rem; margin-bottom: 4px; }
+.video-file video { width: 100%; max-height: 70vh; border-radius: 14px; background: #000; display: block; }
+
+/* "I am not a robot" box */
+.robot { display: flex; align-items: center; gap: 10px; margin: 6px 0 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #f7faf6; width: max-content; max-width: 100%; cursor: pointer; font-weight: 600; }
+.robot input { width: 22px; height: 22px; accent-color: var(--green); }
+.cf-turnstile { margin: 6px 0 16px; }
+@media (max-width: 520px) { .brand img:not(.brand-word) { display: none; } .nav-right a { white-space: nowrap; } }

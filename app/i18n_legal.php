@@ -43,32 +43,32 @@ function legal_text(string $page, string $lang): array
             "Dj'aki mi ta! is run by Deals With Discounts (\"we\", \"us\"). Contact: contact@djakimita.com.",
             '[Company details to add: legal name, Chamber of Commerce number and address.]',
         ]],
-        ['2. The card', [
-            "The Dj'aki mi ta! card is a digital discount card. It gives the people named on the card discounts at participating partners in Curaçao.",
-            "A card is valid for the length chosen at purchase (10 days, 1, 3, 6 or 12 months), starting on the day of purchase. The end date is shown in your account and in the app.",
-            'A card is personal. Only the people named on it may use it.',
+        ['2. The account', [
+            "The Dj'aki mi ta! account is a digital discount account. It gives the people named on the account discounts at participating partners in Curaçao.",
+            "An account is valid for the length chosen at purchase (10 days, 1, 3, 6 or 12 months), starting on the day of purchase. The end date is shown in your account and in the app.",
+            'An account is personal. Only the people named on it may use it.',
         ]],
-        ['3. Who can get a card', [
-            'Cards are only for people born in Curaçao. For a family card (up to 5 people), at least one parent must be born in Curaçao.',
-            'Ages: Kids card 0 to 12, Teen card 13 to 17, Adult card 18 and up, Senior card 60 and up. A family card can have up to 3 children aged 17 or younger. Age is counted by year of birth.',
-            'The buyer must be 18 or older. Cards for children and teens are bought by a parent or guardian.',
+        ['3. Who can get an account', [
+            'Accounts are only for people born in Curaçao. For a family account (up to 5 people), at least one parent must be born in Curaçao.',
+            'Ages: Kids account 0 to 12, Teen account 13 to 17, Adult account 18 and up, Senior account 60 and up. A family account can have up to 3 children aged 17 or younger. Age is counted by year of birth.',
+            'The buyer must be 18 or older. Accounts for children and teens are bought by a parent or guardian.',
         ]],
         ['4. The one-time check', [
-            'After buying, each card holder sends a selfie and a photo of their passport page once, so we can check the place of birth. We delete the passport photo straight after the check.',
-            'If the check cannot be completed, or shows the holder was not born in Curaçao, we can refuse or block the card for that person.',
+            'After buying, each account holder sends a selfie and a photo of their passport page once, so we can check the place of birth. We delete the passport photo straight after the check.',
+            'If the check cannot be completed, or shows the holder was not born in Curaçao, we can refuse or block the account for that person.',
         ]],
-        ['5. Using the card', [
-            'At a partner, the card holder scans the partner\'s QR code with the app. The app shows a screen with the holder\'s photo and name. The partner may still ask for an ID.',
+        ['5. Using the account', [
+            'At a partner, the account holder scans the partner\'s QR code with the app. The app shows a screen with the holder\'s photo and name. The partner may still ask for an ID.',
             'Each partner decides its own discount. Discounts and partners can change. A discount has no cash value and cannot be combined with other offers unless the partner says so.',
         ]],
         ['6. Prices and payment', [
             'Prices are shown on the website in euro, US dollar or Caribbean guilder. Payment is handled by Mollie, or by Sentoo for guilders. We never see or store your full card details.',
         ]],
         ['7. No refunds', [
-            'Once bought, a card cannot be cancelled or refunded, except where the law says otherwise.',
+            'Once bought, an account cannot be cancelled or refunded, except where the law says otherwise.',
         ]],
         ['8. Misuse', [
-            'Sharing a card with people not named on it, giving false information or misusing the app can lead to the card or account being blocked, without a refund.',
+            'Sharing an account with people not named on it, giving false information or misusing the app can lead to the account or account being blocked, without a refund.',
         ]],
         ['9. Liability', [
             'Partners are responsible for their own products and services. We are not liable for the quality, availability or safety of what partners offer.',
@@ -86,32 +86,32 @@ function legal_text(string $page, string $lang): array
             "Dj'aki mi ta! wordt gerund door Deals With Discounts (\"wij\", \"ons\"). Contact: contact@djakimita.com.",
             '[Bedrijfsgegevens aanvullen: juridische naam, KvK-nummer en adres.]',
         ]],
-        ['2. De kaart', [
-            "De Dj'aki mi ta! kaart is een digitale kortingskaart. De mensen die op de kaart staan krijgen korting bij deelnemende partners op Curaçao.",
-            "Een kaart is geldig voor de looptijd die bij aankoop is gekozen (10 dagen, 1, 3, 6 of 12 maanden), vanaf de dag van aankoop. De einddatum staat in je account en in de app.",
-            'Een kaart is persoonlijk. Alleen de mensen die erop staan mogen hem gebruiken.',
+        ['2. Het account', [
+            "De Dj'aki mi ta! account is een digitale kortingskaart. De mensen die op het account staan krijgen korting bij deelnemende partners op Curaçao.",
+            "Een account is geldig voor de looptijd die bij aankoop is gekozen (10 dagen, 1, 3, 6 of 12 maanden), vanaf de dag van aankoop. De einddatum staat in je account en in de app.",
+            'Een account is persoonlijk. Alleen de mensen die erop staan mogen hem gebruiken.',
         ]],
-        ['3. Wie een kaart kan krijgen', [
-            'Kaarten zijn alleen voor mensen die op Curaçao geboren zijn. Voor een gezinskaart (maximaal 5 personen) moet minstens één ouder op Curaçao geboren zijn.',
-            'Leeftijden: Kids-kaart 0 tot 12, Teen-kaart 13 tot 17, Adult-kaart 18 en ouder, Senior-kaart 60 en ouder. Op een gezinskaart passen maximaal 3 kinderen tot en met 17 jaar. De leeftijd telt per geboortejaar.',
-            'De koper moet 18 jaar of ouder zijn. Kaarten voor kinderen en tieners worden gekocht door een ouder of voogd.',
+        ['3. Wie een account kan krijgen', [
+            'Accounts zijn alleen voor mensen die op Curaçao geboren zijn. Voor een gezinsaccount (maximaal 5 personen) moet minstens één ouder op Curaçao geboren zijn.',
+            'Leeftijden: Kids-account 0 tot 12, Teen-account 13 tot 17, Adult-account 18 en ouder, Senior-account 60 en ouder. Op een gezinsaccount passen maximaal 3 kinderen tot en met 17 jaar. De leeftijd telt per geboortejaar.',
+            'De koper moet 18 jaar of ouder zijn. Accounts voor kinderen en tieners worden gekocht door een ouder of voogd.',
         ]],
         ['4. De eenmalige controle', [
-            'Na aankoop stuurt elke kaarthouder één keer een selfie en een foto van de paspoortpagina, zodat wij de geboorteplaats kunnen controleren. De paspoortfoto verwijderen wij direct na de controle.',
-            'Als de controle niet lukt, of laat zien dat de houder niet op Curaçao geboren is, kunnen wij de kaart voor die persoon weigeren of blokkeren.',
+            'Na aankoop stuurt elke accounthouder één keer een selfie en een foto van de paspoortpagina, zodat wij de geboorteplaats kunnen controleren. De paspoortfoto verwijderen wij direct na de controle.',
+            'Als de controle niet lukt, of laat zien dat de houder niet op Curaçao geboren is, kunnen wij het account voor die persoon weigeren of blokkeren.',
         ]],
-        ['5. De kaart gebruiken', [
-            'Bij een partner scant de kaarthouder de QR-code van de partner met de app. De app toont een scherm met de foto en naam van de houder. De partner mag alsnog om een ID vragen.',
+        ['5. Het account gebruiken', [
+            'Bij een partner scant de accounthouder de QR-code van de partner met de app. De app toont een scherm met de foto en naam van de houder. De partner mag alsnog om een ID vragen.',
             'Elke partner bepaalt zijn eigen korting. Kortingen en partners kunnen veranderen. Een korting heeft geen geldwaarde en is niet te combineren met andere acties, tenzij de partner dat aangeeft.',
         ]],
         ['6. Prijzen en betaling', [
             'Prijzen staan op de website in euro, Amerikaanse dollar of Caribische gulden. De betaling loopt via Mollie, of via Sentoo bij guldens. Wij zien en bewaren nooit je volledige kaartgegevens.',
         ]],
         ['7. Geen terugbetaling', [
-            'Een gekochte kaart kan niet geannuleerd of terugbetaald worden, behalve als de wet anders bepaalt.',
+            'Een gekochte account kan niet geannuleerd of terugbetaald worden, behalve als de wet anders bepaalt.',
         ]],
         ['8. Misbruik', [
-            'Een kaart delen met mensen die er niet op staan, onjuiste gegevens geven of de app misbruiken kan leiden tot blokkering van de kaart of het account, zonder terugbetaling.',
+            'Een account delen met mensen die er niet op staan, onjuiste gegevens geven of de app misbruiken kan leiden tot blokkering van het account of het account, zonder terugbetaling.',
         ]],
         ['9. Aansprakelijkheid', [
             'Partners zijn verantwoordelijk voor hun eigen producten en diensten. Wij zijn niet aansprakelijk voor de kwaliteit, beschikbaarheid of veiligheid van wat partners aanbieden.',
@@ -130,28 +130,28 @@ function legal_text(string $page, string $lang): array
         ]],
         ['2. What we collect', [
             'Your account: name, email address, and your phone number if you order an eSIM.',
-            'Card holders: name and date of birth of each person on a card.',
-            'The one-time check: a selfie and a photo of the passport page of each card holder.',
-            'Orders: what you bought, when, and the payment status. Mollie processes the payment; we never receive your full card number.',
-            'Use of the card: which partner you scanned and when.',
+            'Account holders: name and date of birth of each person on an account.',
+            'The one-time check: a selfie and a photo of the passport page of each account holder.',
+            'Orders: what you bought, when, and the payment status. Mollie processes the payment; we never receive your full account number.',
+            'Use of the account: which partner you scanned and when.',
             'Website: your IP address in our server logs, and two small cookies (one to keep you logged in during your visit, one to remember your language). We do not use advertising or tracking cookies.',
         ]],
         ['3. Why we use it', [
-            'To sell and activate your card, check that card holders were born in Curaçao, show the right photo and name at partners, send emails about your order and account, help you when you contact us, prevent misuse, and keep the records the law requires.',
+            'To sell and activate your account, check that account holders were born in Curaçao, show the right photo and name at partners, send emails about your order and account, help you when you contact us, prevent misuse, and keep the records the law requires.',
         ]],
         ['4. The passport photo', [
             'The passport photo is only used for the one-time check of the place of birth. It is stored outside the public website, only staff can see it, and it is deleted as soon as the check is done. We keep only the result (verified or not).',
-            'The selfie is kept while your card or account exists, because the partner sees it on the screen when you scan.',
+            'The selfie is kept while your account or account exists, because the partner sees it on the screen when you scan.',
         ]],
         ['5. Who we share it with', [
             'Mollie (payments), Brevo (sending emails) and our hosting provider. They only process data for us.',
             'Flow, only if you order an eSIM: your phone number and email.',
-            'Partners: when you scan, the partner sees your photo, name and that your card is valid on your screen. Partners do not receive your other data.',
+            'Partners: when you scan, the partner sees your photo, name and that your account is valid on your screen. Partners do not receive your other data.',
             'Authorities, only when the law requires it. We never sell your data.',
         ]],
         ['6. How long we keep it', [
             'Passport photo: deleted right after the check.',
-            'Account, card holders and selfie: until you delete your account.',
+            'Account, account holders and selfie: until you delete your account.',
             'Payment records: as long as tax law requires, without your name once your account is deleted.',
             'Server logs: only for a short time, for security.',
         ]],
@@ -173,28 +173,28 @@ function legal_text(string $page, string $lang): array
         ]],
         ['2. Wat wij verzamelen', [
             'Je account: naam, e-mailadres, en je telefoonnummer als je een eSIM bestelt.',
-            'Kaarthouders: naam en geboortedatum van elke persoon op een kaart.',
-            'De eenmalige controle: een selfie en een foto van de paspoortpagina van elke kaarthouder.',
+            'Accounthouders: naam en geboortedatum van elke persoon op een account.',
+            'De eenmalige controle: een selfie en een foto van de paspoortpagina van elke accounthouder.',
             'Bestellingen: wat je kocht, wanneer, en de betaalstatus. Mollie verwerkt de betaling; wij ontvangen nooit je volledige kaartnummer.',
-            'Gebruik van de kaart: welke partner je scande en wanneer.',
+            'Gebruik van het account: welke partner je scande en wanneer.',
             'Website: je IP-adres in onze serverlogs, en twee kleine cookies (één om je ingelogd te houden tijdens je bezoek, één om je taal te onthouden). Wij gebruiken geen advertentie- of trackingcookies.',
         ]],
         ['3. Waarom wij het gebruiken', [
-            'Om je kaart te verkopen en te activeren, te controleren dat kaarthouders op Curaçao geboren zijn, de juiste foto en naam te tonen bij partners, e-mails te sturen over je bestelling en account, je te helpen als je contact opneemt, misbruik te voorkomen, en de administratie te bewaren die de wet vraagt.',
+            'Om je account te verkopen en te activeren, te controleren dat accounthouders op Curaçao geboren zijn, de juiste foto en naam te tonen bij partners, e-mails te sturen over je bestelling en account, je te helpen als je contact opneemt, misbruik te voorkomen, en de administratie te bewaren die de wet vraagt.',
         ]],
         ['4. De paspoortfoto', [
             'De paspoortfoto wordt alleen gebruikt voor de eenmalige controle van de geboorteplaats. Hij staat buiten de openbare website, alleen medewerkers kunnen hem zien, en hij wordt verwijderd zodra de controle klaar is. We bewaren alleen de uitkomst (geverifieerd of niet).',
-            'De selfie bewaren we zolang je kaart of account bestaat, omdat de partner hem op het scherm ziet als je scant.',
+            'De selfie bewaren we zolang je account of account bestaat, omdat de partner hem op het scherm ziet als je scant.',
         ]],
         ['5. Met wie wij het delen', [
             'Mollie (betalingen), Brevo (e-mails versturen) en onze hostingpartij. Zij verwerken gegevens alleen voor ons.',
             'Flow, alleen als je een eSIM bestelt: je telefoonnummer en e-mailadres.',
-            'Partners: als je scant, ziet de partner op jouw scherm je foto, naam en dat je kaart geldig is. Partners krijgen je andere gegevens niet.',
+            'Partners: als je scant, ziet de partner op jouw scherm je foto, naam en dat je account geldig is. Partners krijgen je andere gegevens niet.',
             'Overheid, alleen als de wet dat verplicht. Wij verkopen je gegevens nooit.',
         ]],
         ['6. Hoe lang wij het bewaren', [
             'Paspoortfoto: direct na de controle verwijderd.',
-            'Account, kaarthouders en selfie: tot je je account verwijdert.',
+            'Account, accounthouders en selfie: tot je je account verwijdert.',
             'Betaalgegevens: zolang de belastingwet vraagt, zonder je naam zodra je account verwijderd is.',
             'Serverlogs: alleen korte tijd, voor beveiliging.',
         ]],

@@ -44,7 +44,7 @@ admin_post(function () use ($id) {
         case 'recheck':
             if (in_array(pay_provider($token), ['Mollie', 'Sentoo', 'Stripe (old)'], true) && fulfill_payment_intent($token)) {
                 admin_log('order_recheck_paid', '#' . $id);
-                flash('The payment provider says this order is paid. The card is active and the customer got the email.');
+                flash('The payment provider says this order is paid. The account is active and the customer got the email.');
             } else {
                 flash('The payment provider says this order is not paid (yet).', 'bad');
             }
@@ -52,7 +52,7 @@ admin_post(function () use ($id) {
         case 'mark_paid':
             $n = activate_order($token);
             admin_log('order_marked_paid', '#' . $id . ' ' . trim((string) ($_POST['why'] ?? '')));
-            flash($n ? 'Marked as paid. The card is active and the customer got the email.' : 'This order was already paid.');
+            flash($n ? 'Marked as paid. The account is active and the customer got the email.' : 'This order was already paid.');
             break;
         case 'resend':
             if ((int) $rows[0]['status'] === 1) {
@@ -123,7 +123,7 @@ if ($id) {
             <?php else: ?><?= e($token ?: '–') ?><?php endif; ?></dd>
         </dl>
         <table class="ad-table" style="margin-top:14px">
-          <thead><tr><th>Card</th><th>Length</th><th>Price</th><th>Valid until</th></tr></thead>
+          <thead><tr><th>Account</th><th>Length</th><th>Price</th><th>Valid until</th></tr></thead>
           <tbody><?php foreach ($lines as $l): ?>
             <tr><td><?= e($l['card']) ?></td><td><?= e($l['length']) ?></td><td><?= e(admin_money($l['price'], $cur)) ?></td><td><?= e($l['expire'] ? admin_date($l['expire']) : '–') ?></td></tr>
           <?php endforeach; ?></tbody>
@@ -138,13 +138,13 @@ if ($id) {
             <dt>Phone</dt><dd><?= e($client['phone'] ?: '–') ?></dd>
           </dl>
         <?php else: ?><p class="ad-muted"><?= e($main['email']) ?> (no account found)</p><?php endif; ?>
-        <h2>Card holders</h2>
+        <h2>Account holders</h2>
         <?php if (!$holders): ?><p class="ad-muted">None saved for this order.</p><?php endif; ?>
         <ul>
           <?php foreach ($holders as $h): ?><li><?= e($h['name']) ?> · born <?= e(admin_date($h['client_birthdate'])) ?></li><?php endforeach; ?>
         </ul>
         <?php if ($checks): ?>
-          <h2>Card checks</h2>
+          <h2>Account checks</h2>
           <ul><?php foreach ($checks as $c): ?>
             <li><?= e($c['name']) ?>: <?= (int) $c['status'] === 1 ? '<span class="ad-tag ok">Approved</span>' : ((int) $c['status'] === 2 ? '<span class="ad-tag bad">Sent back</span>' : '<span class="ad-tag wait">Waiting</span>') ?></li>
           <?php endforeach; ?></ul>
@@ -161,12 +161,12 @@ if ($id) {
         <?php if ($paid): ?>
           <form method="post"><?= csrf_field() ?><button class="btn btn-sm btn-outline" name="action" value="resend">Send the confirmation email again</button></form>
         <?php else: ?>
-          <form method="post" data-confirm="Mark order #<?= $id ?> as paid? The card turns on and the customer gets the email. Only do this when the money is really in."><?= csrf_field() ?>
+          <form method="post" data-confirm="Mark order #<?= $id ?> as paid? The account turns on and the customer gets the email. Only do this when the money is really in."><?= csrf_field() ?>
             <input class="ad-in" style="width:260px;display:inline-block" name="why" placeholder="Why? e.g. paid cash at the office" required>
             <button class="btn btn-sm btn-outline" name="action" value="mark_paid">Mark as paid</button></form>
         <?php endif; ?>
       </div>
-      <p class="ad-muted">Refunds are done in <?= $provider === 'Sentoo' ? 'the Sentoo portal' : 'Mollie' ?>. To stop a card after a refund, set its end date to today on the customer's page.</p>
+      <p class="ad-muted">Refunds are done in <?= $provider === 'Sentoo' ? 'the Sentoo portal' : 'Mollie' ?>. To stop an account after a refund, set its end date to today on the customer's page.</p>
     </div>
     <?php
     admin_foot();
@@ -242,7 +242,7 @@ admin_head('Orders', 'orders');
 </form>
 <div class="ad-wrap">
 <table class="ad-table">
-  <thead><tr><th>Order</th><th>Date</th><th>Email</th><th>Cards</th><th>Paid with</th><th>Status</th></tr></thead>
+  <thead><tr><th>Order</th><th>Date</th><th>Email</th><th>Accounts</th><th>Paid with</th><th>Status</th></tr></thead>
   <tbody>
   <?php foreach ($orders as $o): ?>
     <tr>

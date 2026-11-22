@@ -241,7 +241,7 @@ if ($id) {
     if (!$v) {
         http_response_code(404);
         admin_head('Visit not found', 'visits');
-        echo '<h1>Visit not found</h1><p><a href="/admin/visits.php">← Partner visits</a></p>';
+        echo '<h1>Visit not found</h1><p><a href="/admin/visits.php">← Visit checklist</a></p>';
         admin_foot();
         exit;
     }
@@ -257,7 +257,7 @@ if ($id) {
     admin_head('Visit: ' . $v['name'], 'visits');
     echo '<style>' . $css . '</style>';
     ?>
-    <p><a href="/admin/visits.php">← Partner visits</a><?php if ($isAdmin): ?> · <a href="/admin/partners.php?id=<?= (int) $v['company_id'] ?>">Partner details</a><?php endif; ?></p>
+    <p><a href="/admin/visits.php">← Visit checklist</a><?php if ($isAdmin): ?> · <a href="/admin/partners.php?id=<?= (int) $v['company_id'] ?>">Partner details</a><?php endif; ?></p>
     <h1><?= e($v['name'] ?: 'Partner #' . $v['company_id']) ?>
       <?= $done ? '<span class="ad-tag ok">Visited ' . e(admin_date($v['done_at'])) . '</span>' : '<span class="ad-tag wait">Open</span>' ?></h1>
     <?php if ($v['location']): ?><p class="ad-muted">📍 <?= e($v['location']) ?></p><?php endif; ?>
@@ -378,10 +378,10 @@ if (($_GET['view'] ?? '') === 'cal') {
             $perDay[$d][] = $v;
         }
     }
-    admin_head('Partner visits calendar', 'visits');
+    admin_head('Visit checklist calendar', 'visits');
     echo '<style>' . $css . '</style>';
     ?>
-    <p><a href="/admin/visits.php">← Partner visits</a></p>
+    <p><a href="/admin/visits.php">← Visit checklist</a></p>
     <h1>Calendar</h1>
     <div class="vs-calnav">
       <a href="?view=cal&amp;m=<?= date('Y-m', strtotime('-1 month', $first)) ?>" aria-label="Previous month">‹</a>
@@ -404,7 +404,7 @@ if (($_GET['view'] ?? '') === 'cal') {
       <?php foreach ($perDay[$day] ?? [] as $v): ?>
         <?= $row($v, (int) $v['status'] === 1 ? 'Visited by ' . $v['done_by'] : 'Planned') ?>
       <?php endforeach; ?>
-      <?php if (empty($perDay[$day])): ?><p class="vs-empty">No partners planned on this day. Plan visits from the list on the Partner visits page.</p><?php endif; ?>
+      <?php if (empty($perDay[$day])): ?><p class="vs-empty">No partners planned on this day. Plan visits from the list on the Visit checklist page.</p><?php endif; ?>
     </div>
     <p class="ad-muted">Yellow number: planned visits. Green number: visits done that day.</p>
     <?php
@@ -426,10 +426,10 @@ uasort($visited, fn($a, $b) => strcmp((string) $b['done_at'], (string) $a['done_
 $activeCount = count(array_filter($partners, fn($p) => (int) $p['active']));
 $activeVisited = count(array_filter($partners, fn($p) => (int) $p['active'] && isset($lastDone[(int) $p['id']])));
 
-admin_head('Partner visits', 'visits');
+admin_head('Visit checklist', 'visits');
 echo '<style>' . $css . '</style>';
 ?>
-<h1>Partner visits</h1>
+<h1>Visit checklist</h1>
 <div class="ad-cards">
   <div class="ad-card"><b><?= count($todayList) ?></b><span>Planned today</span></div>
   <div class="ad-card"><b><?= $doneWeek ?></b><span>Visited this week</span></div>

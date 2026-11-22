@@ -19,8 +19,8 @@ admin_post(function () use ($db) {
         }
         $n = $db->prepare('UPDATE card_lengths SET eur = :e, usd = :u, xcg = :x WHERE code = :c');
         $n->execute(['e' => $eur, 'u' => $money($_POST['s_usd'] ?? 0), 'x' => $money($_POST['s_xcg'] ?? 0), 'c' => $code]);
-        admin_log('prices_same', $code . ' → ' . $eur . ' EUR for all cards');
-        flash('Every card now costs the same for this length (' . $n->rowCount() . ' prices changed).');
+        admin_log('prices_same', $code . ' → ' . $eur . ' EUR for all accounts');
+        flash('Every account now costs the same for this length (' . $n->rowCount() . ' prices changed).');
         return;
     }
     if (($_POST['action'] ?? '') === 'save') {
@@ -33,7 +33,7 @@ admin_post(function () use ($db) {
         }
         $db->prepare('UPDATE website_product_prices SET eur = :e, dollars = :u WHERE product_id = :p')
             ->execute(['e' => $money($_POST['esim_eur'] ?? 0), 'u' => $money($_POST['esim_usd'] ?? 0), 'p' => ESIM_PRODUCT]);
-        admin_log('prices_saved', $changed . ' card prices + eSIM');
+        admin_log('prices_saved', $changed . ' account prices + eSIM');
         flash('Prices saved. The checkout uses them right away. Orders already paid keep their price.');
     }
 }, '/admin/prices.php');
@@ -49,20 +49,20 @@ $num = fn($v) => rtrim(rtrim(number_format((float) $v, 2, '.', ''), '0'), '.');
 admin_head('Prices', 'prices');
 ?>
 <h1>Prices</h1>
-<p class="ad-muted">Prices for each card and length, in euro, dollar and guilder. Untick "Sell" to stop selling a length (for example no 10-day Family card). The checkout shows the new prices right away.</p>
+<p class="ad-muted">Prices for each account and length, in euro, dollar and guilder. Untick "Sell" to stop selling a length (for example no 10-day Family account). The checkout shows the new prices right away.</p>
 <form method="post" class="ad-box ad-form"><?= csrf_field() ?>
-  <h2 class="full" style="margin-top:0">Same price for every card</h2>
-  <p class="full ad-muted">Fill this in to give all cards (Kids, Teen, Adult, Senior, Family) the same price for one length. You can still change single prices below afterwards.</p>
+  <h2 class="full" style="margin-top:0">Same price for every account</h2>
+  <p class="full ad-muted">Fill this in to give all accounts (Kids, Teen, Adult, Senior, Family) the same price for one length. You can still change single prices below afterwards.</p>
   <div><label>Length</label><select name="code"><?php foreach ($lenNames as $c => $l): ?><option value="<?= $c ?>"<?= $c === '12m' ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select></div>
   <div><label>€ EUR</label><input type="text" inputmode="decimal" name="s_eur" required></div>
   <div><label>$ USD</label><input type="text" inputmode="decimal" name="s_usd"></div>
   <div><label>ƒ XCG</label><input type="text" inputmode="decimal" name="s_xcg"></div>
-  <div class="full"><button class="btn btn-sm" name="action" value="same" onclick="return confirm('Give every card this price for this length?')">Use for all cards</button></div>
+  <div class="full"><button class="btn btn-sm" name="action" value="same" onclick="return confirm('Give every account this price for this length?')">Use for all accounts</button></div>
 </form>
 <form method="post"><?= csrf_field() ?>
   <?php foreach ($cardTypes as $pid => $label): if (empty($byCard[$pid])) { continue; } ?>
     <div class="ad-box">
-      <h2 style="margin-top:0"><?= e($label) ?> card</h2>
+      <h2 style="margin-top:0"><?= e($label) ?> account</h2>
       <div class="ad-wrap"><table class="ad-table" style="max-width:720px">
         <thead><tr><th>Length</th><th>€ EUR</th><th>$ USD</th><th>ƒ XCG</th><th>Sell</th></tr></thead>
         <tbody><?php foreach ($byCard[$pid] as $l): ?>

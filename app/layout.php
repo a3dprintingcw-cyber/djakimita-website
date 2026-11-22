@@ -77,7 +77,7 @@ function page_header(string $title, string $active = '', string $description = '
   <div class="wrap nav-in">
     <a class="brand" href="/" aria-label="Dj'aki mi ta! home">
       <img src="/assets/img/logo-mark.png" alt="" width="40" height="40">
-      <span class="brand-name">Dj'aki <em>mi ta!</em></span>
+      <img class="brand-word" src="/assets/img/logo-word.png" alt="Dj'aki mi ta!" width="97" height="40">
     </a>
     <?php if (function_exists('before_launch') && before_launch()): ?>
     <div class="nav-right">
@@ -142,7 +142,8 @@ function page_footer(): void
     <div>
       <h3><?= e(t('footer.contact')) ?></h3>
       <ul>
-        <li><a href="mailto:contact@djakimita.com"><?= icon('mail', 16) ?> contact@djakimita.com</a></li>
+        <li><a href="/contact.php"><?= icon('mail', 16) ?> <?= e(t('ct.title')) ?></a></li>
+        <li><a href="mailto:contact@djakimita.com">contact@djakimita.com</a></li>
         <li>Curaçao · Nederland</li>
         <li><a href="/termsandconditions.php"><?= e(t('footer.terms')) ?></a></li>
         <li><a href="/privacy_policy.php"><?= e(t('footer.privacy')) ?></a></li>
@@ -155,6 +156,12 @@ function page_footer(): void
   </div>
 </footer>
 <?= jingle_html() ?>
+<?php if (!empty($GLOBALS['staff_preview'])): ?>
+<div style="position:fixed;right:12px;bottom:12px;z-index:70;background:#17221a;color:#fff;padding:10px 14px;border-radius:12px;font:600 14px/1.3 system-ui,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.3);max-width:300px">
+  Preview for staff. Visitors still see the countdown until launch.
+  <a href="/?preview=0" style="color:#e8b84a;display:block;margin-top:4px">Stop preview, back to the backend</a>
+</div>
+<?php endif; ?>
 </body>
 </html>
     <?php

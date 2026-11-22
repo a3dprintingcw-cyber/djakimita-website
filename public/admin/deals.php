@@ -52,8 +52,8 @@ foreach ($db->query('SELECT company_id c, voucher_id v, MAX(the_percent) p FROM 
 admin_head('All discounts', 'deals');
 ?>
 <h1>All discounts</h1>
-<p class="ad-muted">The % off each card holder gets at each partner. Empty means no discount for that card, 100 means free.
-  Change the numbers and press <strong>Save all</strong>. For the normal price and the price with the card, open the partner.</p>
+<p class="ad-muted">The % off each account holder gets at each partner. Empty means no discount for that account, 100 means free.
+  Change the numbers and press <strong>Save all</strong>. For the normal price and the price with the account, open the partner.</p>
 <form class="ad-filter" method="get">
   <select name="country" onchange="this.form.submit()"><option value="1"<?= $country === 1 ? ' selected' : '' ?>>Dj'aki mi ta! (Curaçao)</option><option value="2"<?= $country === 2 ? ' selected' : '' ?>>Rib'e luga! (Netherlands)</option></select>
   <input type="search" id="dl-search" class="ad-in" placeholder="Search partner" style="max-width:240px">

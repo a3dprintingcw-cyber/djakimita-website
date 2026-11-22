@@ -62,12 +62,12 @@ foreach ($orders->fetchAll() as $o) {
         continue;
     }
     $names = implode(', ', array_map(fn($h) => e($h['name']), $todo));
-    $html = mail_wrap('One small step left for your card',
-        '<p>Your card is paid and active. To use it at our partners, these card holders still need to do the one-time check: <strong>' . $names . '</strong>.</p>'
+    $html = mail_wrap('One small step left for your account',
+        '<p>Your account is paid and active. To use it at our partners, these account holders still need to do the one-time check: <strong>' . $names . '</strong>.</p>'
         . '<p>It takes 2 minutes: one selfie and one photo of the passport page. After that you just scan at the shop, no passport needed. We delete the passport photo right after the check.</p>'
-        . button(verify_link((int) $o['id']), 'Verify my card'));
+        . button(verify_link((int) $o['id']), 'Verify my account'));
     echo ($dry ? '[dry] ' : '') . "$kind order #{$o['id']} -> {$o['email']}\n";
-    if (!$dry && brevo_send((string) $o['email'], "Dj'aki mi ta!: verify your card (2 minutes)", $html)) {
+    if (!$dry && brevo_send((string) $o['email'], "Dj'aki mi ta!: verify your account (2 minutes)", $html)) {
         mark_sent($kind, (int) $o['id']);
         $sent++;
     }
@@ -94,12 +94,12 @@ foreach ($cards->fetchAll() as $c) {
             $cardKey = $k;
         }
     }
-    $html = mail_wrap('Your card expires on ' . e(date('d-m-Y', strtotime($c['expire']))),
+    $html = mail_wrap('Your account expires on ' . e(date('d-m-Y', strtotime($c['expire']))),
         '<p>Hi ' . e($c['username'] ?: 'there') . ',</p>'
-        . '<p>Your ' . e(package_label((int) $c['package_id'])) . ' card is valid for ' . (int) $c['left_days'] . ' more days. Going to Curaçao again? Renew in a minute and keep your discounts. You do not need to do the passport check again.</p>'
-        . button($base . '/checkout.php' . ($cardKey ? '?card=' . $cardKey : ''), 'Renew my card'));
+        . '<p>Your ' . e(package_label((int) $c['package_id'])) . ' account is valid for ' . (int) $c['left_days'] . ' more days. Going to Curaçao again? Renew in a minute and keep your discounts. You do not need to do the passport check again.</p>'
+        . button($base . '/checkout.php' . ($cardKey ? '?card=' . $cardKey : ''), 'Renew my account'));
     echo ($dry ? '[dry] ' : '') . "$kind card #{$c['id']} -> {$c['email']}\n";
-    if (!$dry && brevo_send((string) $c['email'], "Dj'aki mi ta!: your card expires in " . (int) $c['left_days'] . ' days', $html)) {
+    if (!$dry && brevo_send((string) $c['email'], "Dj'aki mi ta!: your account expires in " . (int) $c['left_days'] . ' days', $html)) {
         mark_sent($kind, (int) $c['id']);
         $sent++;
     }

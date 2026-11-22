@@ -47,21 +47,39 @@ page_header($p['name'] . " · Dj'aki mi ta!", 'partners', mb_substr(strip_tags((
         <?php if ($best > 0): ?><span class="badge badge-inline"><?= e(discount_label($best)) ?></span><?php endif; ?>
         <h1><?= e($p['name']) ?></h1>
         <div class="desc"><?= nl2br(e(trim((string) $p['description']))) ?></div>
+
+        <?php if ($note = partner_note((int) $p['id'])): ?>
+          <div class="p-note" role="note"><strong><?= e(t('p.note')) ?></strong><div><?= nl2br(e($note)) ?></div></div>
+        <?php endif; ?>
         <?php if ($video = partner_video((int) $p['id'])): ?><div class="p-video"><?= video_embed($video, t('p.video')) ?></div><?php endif; ?>
 
-        <?php if ($p['deals']): ?>
+        <?php
+          // Same discount and price for every account? Show one line "All persons".
+          $rows = array_values(array_filter($p['deals'], fn ($d) => package_label((int) $d['voucher_id'])));
+          $sig = array_unique(array_map(fn ($d) => round((float) $d['the_percent']) . '|' . round((float) $d['was'], 2), $rows));
+          if (count($rows) > 1 && count($sig) === 1) {
+              $rows = [$rows[0] + ['all' => true]];
+          }
+        ?>
+        <?php if ($rows): ?>
           <div class="box">
             <h2 class="h3"><?= e(t('partner.discounts')) ?></h2>
             <table class="deals">
-              <?php foreach ($p['deals'] as $d): $lbl = package_label((int) $d['voucher_id']); if (!$lbl) continue; ?>
+              <?php foreach ($rows as $d): $pc = (int) round((float) $d['the_percent']); $was = (float) $d['was']; ?>
                 <tr>
-                  <th scope="row"><?= e($lbl) ?></th>
-                  <td><strong><?= (int) round((float) $d['the_percent']) >= 100 ? e(t('deals.free')) : e(t('deals.off', ['p' => (int) round((float) $d['the_percent'])])) ?></strong></td>
-                  <td class="muted small"><?= e(t('partner.was')) ?> <s><?= e(number_format((float) $d['was'], 2)) ?></s></td>
+                  <th scope="row"><?= e(!empty($d['all']) ? t('deals.all') : package_label((int) $d['voucher_id'])) ?></th>
+                  <?php if ($pc <= 0): ?>
+                    <td colspan="2" class="muted"><?= e(t('deals.see')) ?></td>
+                  <?php else: ?>
+                    <td><strong><?= $pc >= 100 ? e(t('deals.free')) : e(t('deals.off', ['p' => $pc])) ?></strong></td>
+                    <td class="muted small"><?php if ($was > 0): ?><?= e(t('partner.was')) ?> <s><?= e(number_format($was, 2)) ?></s><?php endif; ?></td>
+                  <?php endif; ?>
                 </tr>
               <?php endforeach; ?>
             </table>
           </div>
+        <?php else: ?>
+          <div class="box"><h2 class="h3"><?= e(t('partner.discounts')) ?></h2><p class="muted" style="margin:0"><?= e(t('deals.see')) ?></p></div>
         <?php endif; ?>
 
         <div class="box">

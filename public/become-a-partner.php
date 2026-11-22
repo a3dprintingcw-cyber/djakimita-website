@@ -19,10 +19,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_check()) {
         $errors[] = t('co.err.session');
     }
-    if ((string) ($_POST['website_url'] ?? '') !== '') {
+    $bot = bot_check('partner', 5);
+    if ($bot === 'bot') {
         // Hidden field only bots fill in: pretend it worked.
         header('Location: /become-a-partner.php?sent=1#apply');
         exit;
+    }
+    if ($bot !== '') {
+        $errors[] = t($bot);
     }
     if ($f['company'] === '' || $f['reg'] === '' || $f['contact'] === '' || $f['offer'] === '') {
         $errors[] = t('bp.err');
@@ -115,7 +119,6 @@ $req = ' <span class="req" aria-hidden="true">*</span>';
       <?php endif; ?>
       <form method="post" action="/become-a-partner.php#apply" class="box bp-form" novalidate>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <div class="hp" aria-hidden="true"><label>Website URL<input type="text" name="website_url" tabindex="-1" autocomplete="off"></label></div>
         <div class="field-row">
           <div class="field"><label for="company"><?= e(t('bp.company')) . $req ?></label><input id="company" name="company" autocomplete="organization" required value="<?= e($f['company']) ?>"></div>
           <div class="field"><label for="reg"><?= e(t('bp.reg')) . $req ?></label><input id="reg" name="reg" required value="<?= e($f['reg']) ?>"></div>
@@ -143,6 +146,7 @@ $req = ' <span class="req" aria-hidden="true">*</span>';
           <p class="hint" id="offer-hint"><?= e(t('bp.offer.hint')) ?></p>
         </div>
         <label class="check"><input type="checkbox" name="consent" value="1"<?= $f['consent'] ? ' checked' : '' ?>> <span><?= e(t('bp.consent')) ?></span></label>
+        <?= bot_fields() ?>
         <button class="btn btn-lg btn-block" type="submit"><?= e(t('bp.send')) ?> <?= icon('arrow', 18) ?></button>
         <p class="hint"><span class="req">*</span> <?= e(t('bp.req')) ?></p>
       </form>

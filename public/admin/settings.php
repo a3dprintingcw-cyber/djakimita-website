@@ -14,7 +14,7 @@ admin_post(function () use ($db, $me) {
                 }
             }
             set_setting('notify_email', implode(', ', $list));
-            foreach (['notify_orders', 'notify_esim', 'notify_daily', 'birthday_on'] as $k) {
+            foreach (['notify_orders', 'notify_esim', 'notify_checks', 'notify_contact', 'notify_daily', 'birthday_on'] as $k) {
                 set_setting($k, empty($_POST[$k]) ? '0' : '1');
             }
             set_setting('birthday_text', mb_substr(trim((string) $_POST['birthday_text']), 0, 1000));
@@ -179,11 +179,13 @@ admin_head('Settings', 'settings');
 <form method="post" class="ad-box ad-form"><?= csrf_field() ?>
   <h2 class="full" style="margin-top:0">Emails to the team</h2>
   <div class="full"><label>Send to (more addresses: separate with a comma)</label><input type="text" name="notify_email" value="<?= e(implode(', ', staff_emails())) ?>"></div>
-  <label class="check full"><input type="checkbox" name="notify_orders" value="1"<?= setting('notify_orders', '1') === '1' ? ' checked' : '' ?>> <span>Email me when a card is bought</span></label>
+  <label class="check full"><input type="checkbox" name="notify_orders" value="1"<?= setting('notify_orders', '1') === '1' ? ' checked' : '' ?>> <span>Email me when an account is bought</span></label>
   <label class="check full"><input type="checkbox" name="notify_esim" value="1"<?= setting('notify_esim', '1') === '1' ? ' checked' : '' ?>> <span>Email me when an eSIM is bought</span></label>
+  <label class="check full"><input type="checkbox" name="notify_checks" value="1"<?= setting('notify_checks', '1') === '1' ? ' checked' : '' ?>> <span>Email me when someone sends photos for the account check</span></label>
+  <label class="check full"><input type="checkbox" name="notify_contact" value="1"<?= setting('notify_contact', '1') === '1' ? ' checked' : '' ?>> <span>Email me when someone uses "Send us a message" on the website</span></label>
   <label class="check full"><input type="checkbox" name="notify_daily" value="1"<?= setting('notify_daily', '1') === '1' ? ' checked' : '' ?>> <span>Every morning: summary of yesterday (sales, which partners were visited, app views)</span></label>
   <h2 class="full">Birthday message</h2>
-  <label class="check full"><input type="checkbox" name="birthday_on" value="1"<?= setting('birthday_on', '1') === '1' ? ' checked' : '' ?>> <span>Send card holders an email on their birthday (only people with an active card)</span></label>
+  <label class="check full"><input type="checkbox" name="birthday_on" value="1"<?= setting('birthday_on', '1') === '1' ? ' checked' : '' ?>> <span>Send account holders an email on their birthday (only people with an active account)</span></label>
   <div class="full"><label>Message (leave empty for the standard text)</label><textarea name="birthday_text" rows="3" placeholder="Today is your day! The whole Dj'aki mi ta! team wishes you a happy birthday."><?= e((string) setting('birthday_text', '')) ?></textarea></div>
   <div class="full ad-actions"><button class="btn btn-sm" name="action" value="notify">Save</button></div>
 </form>

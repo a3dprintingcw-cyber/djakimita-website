@@ -58,14 +58,14 @@ function notify_if_order_reviewed(int $orderId): void
         $body .= '<p><strong>' . e($v['name']) . ':</strong> ' . e((string) $v['note']) . '</p>';
     }
     if ($bad) {
-        $body .= '<p><a href="' . e(verify_link($orderId)) . '" style="display:inline-block;background:#187c19;color:#fff;padding:10px 20px;border-radius:999px;text-decoration:none;font-weight:bold">Send new photos</a></p>';
+        $body .= '<p><a href="' . e(verify_link($orderId)) . '" style="display:inline-block;background:#187c19;color:#fff;padding:10px 20px;border-radius:999px;text-decoration:none;font-weight:bold">Try again: send new photos</a></p>';
     }
     $html = '<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#17221a">'
         . '<div style="background:#187c19;color:#fff;padding:20px 24px;border-radius:12px 12px 0 0;font-size:22px;font-weight:bold">Dj\'aki mi ta!</div>'
         . '<div style="border:1px solid #dfe7dc;border-top:0;padding:24px;border-radius:0 0 12px 12px">'
-        . '<h1 style="font-size:20px;margin:0 0 12px">' . ($bad ? 'Your card check: one more thing' : 'Your card is verified') . '</h1>'
+        . '<h1 style="font-size:20px;margin:0 0 12px">' . ($bad ? 'Please try again: we need a new photo' : 'Your account is verified') . '</h1>'
         . $body . '<p style="color:#4f5d52;font-size:13px">We deleted the passport photos after the check. Questions? contact@djakimita.com</p></div></div>';
-    brevo_send($email, $bad ? "Dj'aki mi ta!: please send a new photo" : "Dj'aki mi ta!: your card is verified", $html);
+    brevo_send($email, $bad ? "Dj'aki mi ta!: please try again, we need a new photo" : "Dj'aki mi ta!: your account is verified", $html);
 }
 
 $queue = [];
@@ -84,7 +84,7 @@ $groups = [];
 foreach ($queue as $v) {
     $groups[$v['order_id']][] = $v;
 }
-admin_head('Card checks', 'checks');
+admin_head('Account checks', 'checks');
 ?>
 
       <h1 class="co-h1">Waiting for a check <span class="count"><?= count($queue) ?></span></h1>
@@ -96,8 +96,8 @@ admin_head('Card checks', 'checks');
 
       <?php foreach ($groups as $orderId => $people): $fam = is_family_package((int) $people[0]['package']); ?>
         <section class="rv-order">
-          <h2 class="h3">Order #<?= (int) $orderId ?> <span class="muted small"><?= e($people[0]['email']) ?> · <?= e(package_label((int) $people[0]['package'])) ?> card</span></h2>
-          <?php if ($fam): ?><p class="hint">Family card: children can be approved when a parent's passport shows Curaçao.</p><?php endif; ?>
+          <h2 class="h3">Order #<?= (int) $orderId ?> <span class="muted small"><?= e($people[0]['email']) ?> · <?= e(package_label((int) $people[0]['package'])) ?> account</span></h2>
+          <?php if ($fam): ?><p class="hint">Family account: children can be approved when a parent's passport shows Curaçao.</p><?php endif; ?>
           <?php foreach ($people as $v): ?>
             <article class="rv-person">
               <div class="rv-photos">

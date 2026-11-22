@@ -539,7 +539,7 @@ function send_order_email(array $rows): void
     $base = rtrim((string) config('base_url'), '/');
     $lines = '';
     foreach ($rows as $r) {
-        $name = (int) $r['package'] === ESIM_PACKAGE ? 'Flow eSIM' : (package_label((int) $r['package']) . ' card');
+        $name = (int) $r['package'] === ESIM_PACKAGE ? 'Flow eSIM' : (package_label((int) $r['package']) . ' account');
         $lines .= '<li>' . e($name) . '</li>';
     }
     $setPw = '';
@@ -549,15 +549,15 @@ function send_order_email(array $rows): void
         // First purchase: let them choose a password for the app.
         $token = create_password_token((int) $first['user_id']);
         $setPw = '<p><a href="' . e($base . '/set-password.php?t=' . $token) . '" style="display:inline-block;background:#187c19;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Choose your password</a></p>'
-            . '<p style="color:#4f5d52;font-size:14px">Then log in to the Dj\'aki mi ta! app with ' . e($email) . ' to see your card.</p>';
+            . '<p style="color:#4f5d52;font-size:14px">Then log in to the Dj\'aki mi ta! app with ' . e($email) . ' to see your account.</p>';
     }
     $verify = '';
     foreach ($rows as $r) {
         if ((int) $r['package'] !== ESIM_PACKAGE && order_holders((int) $r['id'])) {
             $verify = '<div style="background:#fbf3dc;border-radius:10px;padding:16px;margin:16px 0">'
-                . '<p style="margin:0 0 8px;font-weight:bold">One more step: verify your card (2 minutes)</p>'
+                . '<p style="margin:0 0 8px;font-weight:bold">One more step: verify your account (2 minutes)</p>'
                 . '<p style="margin:0 0 12px;color:#4f5d52;font-size:14px">One selfie and one passport photo, one time only. Then you just scan at the shop, no passport needed.</p>'
-                . '<a href="' . e(verify_link((int) $r['id'])) . '" style="display:inline-block;background:#187c19;color:#fff;padding:10px 20px;border-radius:999px;text-decoration:none;font-weight:bold">Verify my card</a></div>';
+                . '<a href="' . e(verify_link((int) $r['id'])) . '" style="display:inline-block;background:#187c19;color:#fff;padding:10px 20px;border-radius:999px;text-decoration:none;font-weight:bold">Verify my account</a></div>';
         }
     }
     $html = '<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#17221a">'

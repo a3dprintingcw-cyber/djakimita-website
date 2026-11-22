@@ -57,11 +57,11 @@ try {
 } catch (Throwable $e) {
 }
 
-admin_head('Freebies', 'freebies');
+admin_head('Partner visits', 'freebies');
 ?>
-<h1>Freebies</h1>
-<p class="ad-muted">How many freebies one card holder gets at each partner, per card type. These are the same numbers as in the old dashboard and the app uses them. 0 means none.
-  "Used <?= $year ?>" is how often the card was scanned at that partner this year.</p>
+<h1>Partner visits</h1>
+<p class="ad-muted">How many times one account holder can visit each partner with a discount, per account type (in the old dashboard this was called "freebies"). The app uses these numbers. 0 means none.
+  "Used <?= $year ?>" is how often the account was scanned at that partner this year.</p>
 <form class="ad-filter" method="get">
   <select name="country" onchange="this.form.submit()"><option value="1"<?= $country === 1 ? ' selected' : '' ?>>Dj'aki mi ta! (Curaçao)</option><option value="2"<?= $country === 2 ? ' selected' : '' ?>>Rib'e luga! (Netherlands)</option></select>
   <input type="search" id="fb-search" class="ad-in" placeholder="Search partner" style="max-width:240px">

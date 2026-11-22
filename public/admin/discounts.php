@@ -13,7 +13,7 @@ admin_post(function () use ($db) {
             throw new RuntimeException('The code needs at least 3 letters or numbers (no spaces).');
         }
         if ($pct < 1 || $pct > 90) {
-            throw new RuntimeException('The discount must be between 1 and 90%. To give a card for free, use Customers → Give a card.');
+            throw new RuntimeException('The discount must be between 1 and 90%. To give an account for free, use Customers → Give an account.');
         }
         $until = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $_POST['valid_until']) ? (string) $_POST['valid_until'] : null;
         $max = (int) ($_POST['max_uses'] ?? 0) ?: null;
@@ -22,9 +22,10 @@ admin_post(function () use ($db) {
         if ($dup->fetchColumn()) {
             throw new RuntimeException('That code already exists.');
         }
-        $db->prepare('INSERT INTO discount_codes (code, percent, valid_until, max_uses, used, active, created_at) VALUES (:c, :p, :u, :m, 0, 1, NOW())')
-            ->execute(['c' => $code, 'p' => $pct, 'u' => $until, 'm' => $max]);
-        admin_log('discount_added', $code . ' ' . $pct . '%' . ($until ? ' until ' . $until : ''));
+        $creator = mb_substr(trim((string) ($_POST['creator'] ?? '')), 0, 120);
+        $db->prepare('INSERT INTO discount_codes (code, percent, valid_until, max_uses, used, active, created_at, creator) VALUES (:c, :p, :u, :m, 0, 1, NOW(), :cr)')
+            ->execute(['c' => $code, 'p' => $pct, 'u' => $until, 'm' => $max, 'cr' => $creator]);
+        admin_log('discount_added', $code . ' ' . $pct . '%' . ($until ? ' until ' . $until : '') . ($creator !== '' ? ' · creator ' . $creator : ''));
         flash('Code ' . $code . ' added. Customers type it at checkout.');
     } elseif ($action === 'toggle') {
         $db->prepare('UPDATE discount_codes SET active = 1 - active WHERE id = :id')->execute(['id' => (int) $_POST['id']]);
@@ -36,8 +37,8 @@ admin_post(function () use ($db) {
         if ($pct < 1 || $pct > 90) {
             throw new RuntimeException('The discount must be between 1 and 90%.');
         }
-        $db->prepare('UPDATE discount_codes SET percent = :p, valid_until = :u, max_uses = :m WHERE id = :id')
-            ->execute(['p' => $pct, 'u' => $until, 'm' => (int) ($_POST['max_uses'] ?? 0) ?: null, 'id' => (int) $_POST['id']]);
+        $db->prepare('UPDATE discount_codes SET percent = :p, valid_until = :u, max_uses = :m, creator = :cr WHERE id = :id')
+            ->execute(['p' => $pct, 'u' => $until, 'm' => (int) ($_POST['max_uses'] ?? 0) ?: null, 'cr' => mb_substr(trim((string) ($_POST['creator'] ?? '')), 0, 120), 'id' => (int) $_POST['id']]);
         admin_log('discount_saved', '#' . (int) $_POST['id']);
         flash('Saved.');
     } elseif ($action === 'delete') {
@@ -53,7 +54,15 @@ $today = date('Y-m-d');
 admin_head('Discount codes', 'discounts');
 ?>
 <h1>Discount codes</h1>
-<p class="ad-muted">A code gives a percentage off the card at checkout (not off the eSIM). Example: PREORDER, 10%, valid until 30 November.</p>
+<p class="ad-muted">A code gives a percentage off the account at checkout (not off the eSIM). Example: PREORDER, 10%, valid until 30 November.</p>
+<p class="ad-muted"><strong>Creator codes:</strong> give an influencer or creator their own code (for example SHANICE10) and fill in their name. Their followers get the discount, and below you see how many accounts each creator sold.</p>
+<?php $creators = array_filter($codes, fn ($c) => trim((string) $c['creator']) !== ''); if ($creators): ?>
+<div class="ad-box"><h2 style="margin-top:0">Sales per creator</h2>
+  <div class="ad-wrap"><table class="ad-table"><thead><tr><th>Creator</th><th>Code</th><th>Accounts sold</th></tr></thead><tbody>
+  <?php usort($creators, fn ($a, $b) => (int) $b['used'] <=> (int) $a['used']); foreach ($creators as $c): ?>
+    <tr><td><?= e($c['creator']) ?></td><td><?= e($c['code']) ?></td><td><strong><?= (int) $c['used'] ?></strong></td></tr>
+  <?php endforeach; ?></tbody></table></div></div>
+<?php endif; ?>
 
 <form method="post" class="ad-box ad-form"><?= csrf_field() ?>
   <h2 class="full" style="margin-top:0">New code</h2>
@@ -61,6 +70,7 @@ admin_head('Discount codes', 'discounts');
   <div><label>Discount (%)</label><input type="number" name="percent" min="1" max="90" step="0.5" required placeholder="10"></div>
   <div><label>Valid until (last day it works)</label><input type="date" name="valid_until" value="2026-11-30"></div>
   <div><label>Max times it can be used (empty = no limit)</label><input type="number" name="max_uses" min="1"></div>
+  <div class="full"><label>Creator or influencer (optional, for a creator code)</label><input type="text" name="creator" placeholder="e.g. Shanice (@shanice.cur)"></div>
   <div class="full"><button class="btn btn-sm" name="action" value="add">Add code</button></div>
 </form>
 
@@ -71,12 +81,13 @@ admin_head('Discount codes', 'discounts');
       $expired = $c['valid_until'] && $c['valid_until'] < $today;
       $full = $c['max_uses'] !== null && (int) $c['used'] >= (int) $c['max_uses']; ?>
     <tr>
-      <td><strong><?= e($c['code']) ?></strong></td>
+      <td><strong><?= e($c['code']) ?></strong><?= trim((string) $c['creator']) !== '' ? '<br><span class="ad-muted">creator: ' . e($c['creator']) . '</span>' : '' ?></td>
       <td>
         <form method="post" class="ad-actions" style="margin:0"><?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
           <input class="ad-in" style="width:80px" type="number" name="percent" min="1" max="90" step="0.5" value="<?= e(rtrim(rtrim((string) $c['percent'], '0'), '.')) ?>"> %
           <input class="ad-in" style="width:160px" type="date" name="valid_until" value="<?= e((string) $c['valid_until']) ?>">
           <input class="ad-in" style="width:110px" type="number" name="max_uses" min="1" placeholder="no limit" value="<?= $c['max_uses'] === null ? '' : (int) $c['max_uses'] ?>">
+          <input class="ad-in" style="width:150px" type="text" name="creator" placeholder="creator (optional)" value="<?= e((string) $c['creator']) ?>">
           <span class="ad-muted"><?= (int) $c['used'] ?> × used<?= (float) $c['given'] > 0 ? ' · ' . e(number_format((float) $c['given'], 2)) . ' off in total' : '' ?></span>
           <button class="btn btn-sm btn-outline" name="action" value="save">Save</button>
         </form>

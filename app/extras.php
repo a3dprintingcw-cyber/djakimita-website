@@ -125,6 +125,18 @@ function partner_video(int $companyId): string
     }
 }
 
+/** "Please note" text for a partner page (set by staff). */
+function partner_note(int $companyId): string
+{
+    try {
+        $st = db()->prepare('SELECT note FROM partner_extra WHERE company_id = :c');
+        $st->execute(['c' => $companyId]);
+        return trim((string) $st->fetchColumn());
+    } catch (Throwable $e) {
+        return '';
+    }
+}
+
 function video_embed(string $url, string $label = 'Video'): string
 {
     if (preg_match('~(?:youtube\.com/(?:watch\?v=|shorts/|embed/)|youtu\.be/)([A-Za-z0-9_-]{6,15})~', $url, $m)) {
@@ -132,6 +144,10 @@ function video_embed(string $url, string $label = 'Video'): string
     }
     if (preg_match('~vimeo\.com/(?:video/)?(\d{5,12})~', $url, $m)) {
         return '<div class="video"><iframe src="https://player.vimeo.com/video/' . e($m[1]) . '" title="' . e($label) . '" loading="lazy" allow="fullscreen; picture-in-picture" allowfullscreen></iframe></div>';
+    }
+    if (preg_match('~^/assets/media/partners/[A-Za-z0-9._-]+\.(mp4|webm|mov|m4v)$~i', $url, $m)) {
+        $type = strtolower($m[1]) === 'webm' ? 'video/webm' : 'video/mp4';
+        return '<div class="video video-file"><video controls playsinline preload="metadata"><source src="' . e($url) . '" type="' . $type . '"></video></div>';
     }
     if (preg_match('~^https?://~i', $url)) {
         return '<a class="btn btn-outline" href="' . e($url) . '" target="_blank" rel="noopener">▶ ' . e($label) . '</a>';
@@ -158,11 +174,23 @@ function jingle_html(): string
         return '';
     }
     $v = (int) @filemtime(public_dir() . $f);
-    return '<script>(function(){try{if(sessionStorage.getItem("djk_jingle"))return;}catch(e){}'
+    $on = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>';
+    $off = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="m23 9-6 6"/><path d="m17 9 6 6"/></svg>';
+    // Plays once per visit after the first tap (phones block sound before that).
+    // The speaker button bottom left stops it and remembers "sound off" on this device.
+    return '<button type="button" class="snd" id="djk-snd" aria-pressed="false" title="' . e(t('snd.off')) . '" aria-label="' . e(t('snd.off')) . '">' . $on . '</button>'
+        . '<script>(function(){var b=document.getElementById("djk-snd"),ON=' . json_encode($on) . ',OFF=' . json_encode($off) . ',L1=' . json_encode(t('snd.off')) . ',L0=' . json_encode(t('snd.on')) . ';'
         . 'var a=new Audio(' . json_encode($f . '?v=' . $v) . ');a.volume=.6;'
-        . 'function go(){document.removeEventListener("pointerdown",go,true);document.removeEventListener("keydown",go,true);'
-        . 'a.play().then(function(){try{sessionStorage.setItem("djk_jingle","1")}catch(e){}}).catch(function(){});}'
-        . 'document.addEventListener("pointerdown",go,true);document.addEventListener("keydown",go,true);})();</script>';
+        . 'function muted(){try{return localStorage.getItem("djk_mute")==="1"}catch(e){return false}}'
+        . 'function done(){try{return !!sessionStorage.getItem("djk_jingle")}catch(e){return false}}'
+        . 'function show(){var m=muted();b.innerHTML=m?OFF:ON;b.setAttribute("aria-pressed",m?"true":"false");b.title=m?L0:L1;b.setAttribute("aria-label",m?L0:L1);}'
+        . 'show();'
+        . 'b.addEventListener("click",function(){var m=!muted();try{localStorage.setItem("djk_mute",m?"1":"0")}catch(e){}'
+        . 'if(m){a.pause();}else{a.currentTime=0;a.play().catch(function(){});}show();});'
+        . 'function go(e){if(e&&e.target&&e.target.closest&&e.target.closest("#djk-snd"))return;document.removeEventListener("pointerdown",go,true);document.removeEventListener("keydown",go,true);'
+        . 'if(muted()||done())return;a.play().then(function(){try{sessionStorage.setItem("djk_jingle","1")}catch(e){}}).catch(function(){});}'
+        . 'document.addEventListener("pointerdown",go,true);document.addEventListener("keydown",go,true);})();</script>'
+        . '<style>.snd{position:fixed;left:14px;bottom:14px;z-index:60;width:46px;height:46px;border-radius:50%;border:0;display:grid;place-items:center;background:#187c19;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer}.snd[aria-pressed=true]{background:#5d6b60}.snd:focus-visible{outline:3px solid #e8b84a;outline-offset:2px}</style>';
 }
 
 // ---------------------------------------------------------------------------
@@ -256,6 +284,18 @@ function notify_staff(string $subject, string $html, string $kind = 'any'): void
     }
 }
 
+/** Email to staff when a customer sends photos for the one-time account check. */
+function notify_check_sent(int $orderId, array $names): void
+{
+    $base = rtrim((string) config('base_url'), '/');
+    $names = array_values(array_filter($names));
+    notify_staff('Account check to review: ' . ($names ? implode(', ', $names) : 'order #' . $orderId),
+        dm_mail('New account check',
+            '<p><strong>' . e(implode(', ', $names)) . '</strong> sent their photos for the account check (order #' . $orderId . ').</p>'
+            . '<p><a href="' . e($base . '/admin/checks.php') . '" style="display:inline-block;background:#187c19;color:#fff;padding:10px 20px;border-radius:999px;text-decoration:none;font-weight:bold">Review now</a></p>'),
+        'checks');
+}
+
 /** Short email to staff when a card or eSIM is paid. */
 function notify_staff_order(array $rows): void
 {
@@ -267,7 +307,7 @@ function notify_staff_order(array $rows): void
             $esim = true;
             $items[] = 'Flow eSIM';
         } else {
-            $items[] = ucfirst(package_label((int) $r['package'])) . ' card';
+            $items[] = ucfirst(package_label((int) $r['package'])) . ' account';
         }
     }
     $who = db()->prepare('SELECT username, lastName, phone FROM clients WHERE id = :id');

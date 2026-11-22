@@ -52,7 +52,7 @@ $spins = (int) $db->query('SELECT COUNT(*) FROM wheel_spins')->fetchColumn();
 admin_head('Spin the wheel', 'wheel');
 ?>
 <h1>Spin the wheel</h1>
-<p class="ad-muted">Customers with an active card can spin the wheel in their account on the website. You decide what is on the wheel and how big the chance is.
+<p class="ad-muted">Customers with an active account can spin the wheel in their account on the website. You decide what is on the wheel and how big the chance is.
   You get an email when someone wins a prize. Tip: also put a few "Try again next time" parts on the wheel.</p>
 
 <form method="post" class="ad-box ad-form"><?= csrf_field() ?>

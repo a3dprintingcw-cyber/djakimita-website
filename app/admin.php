@@ -43,7 +43,7 @@ function staff_accounts(): array
     }
 }
 
-const STAFF_ROLES = ['admin' => 'Admin (everything)', 'inspector' => 'Partner visits only'];
+const STAFF_ROLES = ['admin' => 'Admin (everything)', 'inspector' => 'Visit checklist only'];
 
 /** 'admin' or 'inspector'. Inspectors only see the partner visits pages. Read fresh every request. */
 function admin_role(): string
@@ -208,16 +208,17 @@ const ADMIN_MENU = [
     'index' => ['Overview', 'home'],
     'orders' => ['Orders', 'card'],
     'customers' => ['Customers', 'user'],
-    'checks' => ['Card checks', 'check'],
+    'checks' => ['Account checks', 'check'],
+    'messages' => ['Messages', 'mail'],
     'partners' => ['Partners', 'pin'],
     'deals' => ['All discounts', 'tag'],
-    'freebies' => ['Freebies', 'gift'],
+    'freebies' => ['Partner visits', 'gift'],
     'categories' => ['Categories', 'grid'],
     'prices' => ['Prices', 'tag'],
-    'discounts' => ['Discount codes', 'tag'],
+    'discounts' => ['Discount & creator codes', 'tag'],
     'app-home' => ['App home screen', 'phone'],
     'wheel' => ['Spin the wheel', 'gift'],
-    'visits' => ['Partner visits', 'pin'],
+    'visits' => ['Visit checklist', 'pin'],
     'stats' => ['Charts & data', 'chart'],
     'settings' => ['Settings', 'gear'],
 ];
@@ -241,6 +242,11 @@ function admin_head(string $title, string $active): void
             + (int) db()->query('SELECT COUNT(*) FROM partner_applications WHERE status = 0')->fetchColumn();
     } catch (Throwable $e) {
     }
+    $msgs = 0;
+    try {
+        $msgs = (int) db()->query('SELECT COUNT(*) FROM contact_messages WHERE done = 0')->fetchColumn();
+    } catch (Throwable $e) {
+    }
     ?>
 <!doctype html>
 <html lang="en">
@@ -259,7 +265,7 @@ function admin_head(string $title, string $active): void
     <a class="ad-brand" href="/admin/"><img src="/assets/img/logo-mark.png" alt="" width="36" height="36"><span>Dj'aki mi ta!<small>Admin</small></span></a>
     <nav class="ad-menu">
       <?php foreach (ADMIN_MENU as $key => [$label, $ic]): if (admin_role() === 'inspector' && !in_array($key, INSPECTOR_PAGES, true)) { continue; } ?>
-        <a href="/admin/<?= $key === 'index' ? '' : $key . '.php' ?>" class="<?= $key === $active ? 'on' : '' ?>"><?= e($label) ?><?= $key === 'checks' && $waiting ? ' <span class="ad-badge">' . $waiting . '</span>' : '' ?></a>
+        <a href="/admin/<?= $key === 'index' ? '' : $key . '.php' ?>" class="<?= $key === $active ? 'on' : '' ?>"><?= e($label) ?><?= $key === 'checks' && $waiting ? ' <span class="ad-badge">' . $waiting . '</span>' : '' ?><?= $key === 'messages' && $msgs ? ' <span class="ad-badge">' . $msgs . '</span>' : '' ?></a>
       <?php endforeach; ?>
     </nav>
     <div class="ad-side-foot">
@@ -313,6 +319,7 @@ function admin_css(): string
 .ad-side{background:#0f3d14;color:#fff;padding:18px 14px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100vh;overflow:auto}
 .ad-brand{display:flex;gap:10px;align-items:center;color:#fff;text-decoration:none;font-weight:800}
 .ad-brand img{background:#fff;border-radius:50%;padding:3px}
+.ad-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}.ad-tabs a{padding:8px 14px;border-radius:999px;background:#eef2ee;color:#1d3b1f;text-decoration:none;font-weight:600;font-size:.9rem}.ad-tabs a.on{background:#187c19;color:#fff}
 .ad-brand small{display:block;font-weight:500;opacity:.7;font-size:.75rem}
 .ad-menu{display:flex;flex-direction:column;gap:2px}
 .ad-menu a{color:#e8f1e6;text-decoration:none;padding:9px 12px;border-radius:10px;font-weight:600;font-size:.95rem}
