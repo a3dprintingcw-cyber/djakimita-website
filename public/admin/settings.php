@@ -77,6 +77,11 @@ admin_post(function () use ($db, $me) {
             admin_log('launch_date', $v);
             flash(strtotime($v) > time() ? 'Launch set to ' . admin_date($v, true) . '. The countdown runs until then.' : 'That moment has passed, so the full website is open.');
             break;
+        case 'preview_link':
+            set_setting('preview_code', bin2hex(random_bytes(6)));
+            admin_log('preview_link_new');
+            flash('New preview link made. The old link no longer works.');
+            break;
         case 'my_password':
             $st = $db->prepare('SELECT pass_hash FROM admin_users WHERE username = :u');
             $st->execute(['u' => $me]);
@@ -173,6 +178,20 @@ admin_head('Settings', 'settings');
   <label class="check full"><input type="checkbox" name="no_countdown" value="1"<?= $launch ? '' : ' checked' ?>> <span>No countdown: open the full website now</span></label>
   <div class="full ad-actions"><button class="btn btn-sm" name="action" value="launch" onclick="return document.querySelector('[name=no_countdown]').checked ? confirm('Open the full website right now?') : true">Save</button>
     <span class="ad-muted"><?= $launch && strtotime($launch) > time() ? 'Countdown is running.' : 'The full website is open.' ?></span></div>
+</form>
+
+<?php $pc = (string) setting('preview_code', ''); $plink = rtrim((string) config('base_url'), '/') . '/?peek=' . $pc; ?>
+<form method="post" class="ad-box ad-form"><?= csrf_field() ?>
+  <h2 class="full" style="margin-top:0">Team preview link</h2>
+  <p class="full ad-muted">Share this link with the team so they can see the full website behind the countdown, without a backend login. It works for 14 days per phone or computer. Making a new link stops the old one.</p>
+  <?php if ($pc !== ''): ?>
+    <div class="full"><input type="text" readonly value="<?= e($plink) ?>" onclick="this.select()"></div>
+    <div class="full ad-actions"><button type="button" class="btn btn-sm" onclick="navigator.clipboard.writeText(<?= e(json_encode($plink)) ?>).then(()=>this.textContent='Copied')">Copy link</button>
+      <a class="btn btn-sm btn-outline" href="<?= e($plink) ?>" target="_blank" rel="noopener">Open</a>
+      <button class="btn btn-sm btn-outline" name="action" value="preview_link" onclick="return confirm('Make a new link? The old link stops working.')">Make a new link</button></div>
+  <?php else: ?>
+    <div class="full ad-actions"><button class="btn btn-sm" name="action" value="preview_link">Make a preview link</button></div>
+  <?php endif; ?>
 </form>
 
 <?php $ci = company_info(); ?>

@@ -156,6 +156,12 @@ function page_footer(): void
   </div>
 </footer>
 <?= jingle_html() ?>
+<?php if (!empty($GLOBALS['team_preview']) && empty($GLOBALS['staff_preview'])): ?>
+<div style="position:fixed;right:12px;bottom:12px;z-index:70;background:#17221a;color:#fff;padding:10px 14px;border-radius:12px;font:600 14px/1.3 system-ui,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.3);max-width:280px">
+  Team preview. Everyone else still sees the countdown until launch.
+  <a href="/?peek=off" style="color:#e8b84a;display:block;margin-top:4px">Close preview</a>
+</div>
+<?php endif; ?>
 <?php if (!empty($GLOBALS['staff_preview'])): ?>
 <div style="position:fixed;right:12px;bottom:12px;z-index:70;background:#17221a;color:#fff;padding:10px 14px;border-radius:12px;font:600 14px/1.3 system-ui,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.3);max-width:300px">
   Preview for staff. Visitors still see the countdown until launch.

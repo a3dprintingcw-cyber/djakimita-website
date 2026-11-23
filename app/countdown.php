@@ -231,6 +231,8 @@ function countdown_gate(): void
     // Staff can look at the full site before launch with ?peek=<preview key>
     if (($_GET['peek'] ?? '') === 'off') {
         unset($_SESSION['peek']);
+        setcookie('djk_peek', '', ['expires' => time() - 3600, 'path' => '/']);
+        unset($_COOKIE['djk_peek']);
     }
     // Logged-in staff: "Preview the live website" button in the backend
     if (function_exists('admin_user') && admin_user() !== null) {
@@ -248,10 +250,19 @@ function countdown_gate(): void
             return;
         }
     }
-    $peek = (string) config('countdown_peek', '');
-    if ($peek !== '' && (($_GET['peek'] ?? '') === $peek || ($_SESSION['peek'] ?? '') === $peek)) {
-        $_SESSION['peek'] = $peek;
-        return;
+    // Private team preview link: /?peek=<code>. The code is set in the backend (Settings),
+    // or in config.php. Opening the link once is enough for that browser (cookie, 14 days).
+    $codes = array_values(array_filter([(string) config('countdown_peek', ''), (string) setting('preview_code', '')], fn ($c) => strlen($c) >= 8));
+    $given = (string) ($_GET['peek'] ?? ($_SESSION['peek'] ?? ($_COOKIE['djk_peek'] ?? '')));
+    foreach ($codes as $c) {
+        if (hash_equals($c, $given)) {
+            $_SESSION['peek'] = $c;
+            if (($_COOKIE['djk_peek'] ?? '') !== $c) {
+                setcookie('djk_peek', $c, ['expires' => time() + 14 * 86400, 'path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'Lax']);
+            }
+            $GLOBALS['team_preview'] = true;
+            return;
+        }
     }
     render_countdown();
     exit;
