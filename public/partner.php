@@ -21,6 +21,8 @@ $mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' . urlencode($p['na
 $website = filter_var($p['website'], FILTER_VALIDATE_URL) && preg_match('#^https?://#i', (string) $p['website']) ? $p['website'] : '';
 $phone = preg_replace('/[^0-9+]/', '', (string) $p['phone']);
 $best = $p['deals'] ? max(array_column($p['deals'], 'the_percent')) : 0;
+$low = $p['deals'] ? min(array_column($p['deals'], 'the_percent')) : 0;
+$email = filter_var(trim((string) ($p['email'] ?? '')), FILTER_VALIDATE_EMAIL) ?: '';
 
 page_header($p['name'] . " · Dj'aki mi ta!", 'partners', mb_substr(strip_tags((string) $p['description']), 0, 155));
 ?>
@@ -44,7 +46,7 @@ page_header($p['name'] . " · Dj'aki mi ta!", 'partners', mb_substr(strip_tags((
       </div>
 
       <div class="detail-info">
-        <?php if ($best > 0): ?><span class="badge badge-inline"><?= e(discount_label($best)) ?></span><?php endif; ?>
+        <?php if ($best > 0): ?><span class="badge badge-inline"><?= e(discount_label($best, $low)) ?></span><?php endif; ?>
         <h1><?= e($p['name']) ?></h1>
         <div class="desc"><?= nl2br(e(trim((string) $p['description']))) ?></div>
 
@@ -89,6 +91,7 @@ page_header($p['name'] . " · Dj'aki mi ta!", 'partners', mb_substr(strip_tags((
             <a class="btn btn-outline btn-sm" href="<?= e($mapsUrl) ?>" target="_blank" rel="noopener"><?= e(t('partner.route')) ?></a>
             <?php if ($website): ?><a class="btn btn-outline btn-sm" href="<?= e($website) ?>" target="_blank" rel="noopener"><?= icon('globe', 16) ?> <?= e(t('partner.website')) ?></a><?php endif; ?>
             <?php if ($phone): ?><a class="btn btn-outline btn-sm" href="tel:<?= e($phone) ?>"><?= icon('phone', 16) ?> <?= e(t('partner.call')) ?></a><?php endif; ?>
+            <?php if ($email): ?><a class="btn btn-outline btn-sm" href="mailto:<?= e($email) ?>"><?= icon('mail', 16) ?> <?= e(t('partner.email')) ?></a><?php endif; ?>
           </div>
         </div>
 

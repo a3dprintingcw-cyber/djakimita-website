@@ -98,7 +98,7 @@ p { margin: 0 0 1em; }
 .stats { list-style: none; padding: 0; margin: 0; display: flex; gap: 28px; flex-wrap: wrap; color: #e3eee0; }
 .stats strong { color: var(--white); font-family: var(--display); font-size: 1.4rem; }
 .hero-card { flex: 0 1 300px; margin-left: auto; }
-.dcard { background: var(--white); color: var(--ink); border-radius: 26px; padding: 22px; box-shadow: 0 24px 60px rgba(0, 0, 0, .35); transform: rotate(-3deg); }
+.dcard { background: var(--white); color: var(--ink); border-radius: 26px; padding: 22px; box-shadow: 0 24px 60px rgba(0, 0, 0, .35); }
 .dcard-top { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 600; color: var(--green-ink); }
 .dcard-qr { display: grid; place-items: center; background: var(--tint); border-radius: 16px; margin: 18px 0; padding: 28px; color: var(--green-ink); }
 .dcard-bottom { display: flex; justify-content: space-between; align-items: baseline; font-size: .9rem; }

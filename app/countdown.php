@@ -186,7 +186,7 @@ function render_countdown(): void
 <nav class="cd-strip" aria-label="<?= e($c['partners']) ?>">
   <div class="cd-track" style="--dur:<?= max(30, count($strip) * 4) ?>s">
     <?php foreach ([0, 1] as $copy): foreach ($strip as $p): ?>
-      <a class="cd-chip" href="/partner.php?id=<?= (int) $p['id'] ?>"<?= $copy ? ' aria-hidden="true" tabindex="-1"' : '' ?>><img src="<?= e(partner_image_url($p, 's')) ?>" alt="" loading="lazy" width="74" height="74"><?= e($p['name']) ?><?= (float) $p['best_percent'] > 0 ? ' · ' . e(discount_label($p['best_percent'])) : '' ?></a>
+      <a class="cd-chip" href="/partner.php?id=<?= (int) $p['id'] ?>"<?= $copy ? ' aria-hidden="true" tabindex="-1"' : '' ?>><img src="<?= e(partner_image_url($p, 's')) ?>" alt="" loading="lazy" width="74" height="74"><?= e($p['name']) ?><?= (float) $p['best_percent'] > 0 ? ' · ' . e(discount_label($p['best_percent'], $p['low_percent'] ?? null)) : '' ?></a>
     <?php endforeach; endforeach; ?>
   </div>
 </nav>

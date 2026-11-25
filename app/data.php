@@ -134,6 +134,7 @@ function partners(?int $category = null, string $search = '', ?int $limit = null
     $sql = 'SELECT v.id, TRIM(v.name) AS name, v.location, v.category_id, TRIM(c.name) AS category,
                    LEFT(v.description, 400) AS description,
                    MAX(d.the_percent) AS best_percent,
+                   MIN(d.the_percent) AS low_percent,
                    (SELECT i.id FROM voucher_company_images i WHERE i.company_id = v.id ORDER BY i.sort_order, i.id LIMIT 1) AS image_id,
                    (v.picture IS NOT NULL AND LENGTH(v.picture) > 0) AS has_picture
             FROM voucher_company v
@@ -204,13 +205,20 @@ function partner_image_url(array $p, string $size = 'm'): string
     return url('assets/img/placeholder.svg');
 }
 
-function discount_label($percent): string
+/**
+ * Badge text for a partner. Same discount for every account: "20% off" or "Free".
+ * Different discounts per account: "Different discounts", so people open the partner to see them.
+ */
+function discount_label($percent, $low = null): string
 {
     $p = (int) round((float) $percent);
     if ($p <= 0) {
         return '';
     }
-    return $p >= 100 ? t('deals.free') : t('deals.upto', ['p' => $p]);
+    if ($low !== null && (int) round((float) $low) !== $p) {
+        return t('deals.mixed');
+    }
+    return $p >= 100 ? t('deals.free') : t('deals.off', ['p' => $p]);
 }
 
 function package_label(int $packageId): string
