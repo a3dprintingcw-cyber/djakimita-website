@@ -37,6 +37,14 @@ admin_post(function () use ($db, $cards) {
             $changed++;
         }
     }
+    $txt = $db->prepare('INSERT INTO partner_extra (company_id, deal_text) VALUES (:c, :t) ON DUPLICATE KEY UPDATE deal_text = VALUES(deal_text)');
+    foreach ((array) ($_POST['dt'] ?? []) as $cid => $t) {
+        $t = mb_substr(trim((string) $t), 0, 160);
+        if ($t !== (string) ($_POST['odt'][$cid] ?? '')) {
+            $txt->execute(['c' => (int) $cid, 't' => $t]);
+            $changed++;
+        }
+    }
     admin_log('deals_saved', $changed . ' changes');
     flash($changed ? 'Saved ' . $changed . ' change' . ($changed === 1 ? '' : 's') . '. The website and app show them right away.' : 'Nothing changed.');
 }, '/admin/deals.php?country=' . $country);
@@ -49,18 +57,27 @@ foreach ($db->query('SELECT company_id c, voucher_id v, MAX(the_percent) p FROM 
     $pct[(int) $r['c']][(int) $r['v']] = rtrim(rtrim(number_format((float) $r['p'], 2, '.', ''), '0'), '.');
 }
 
+$texts = [];
+try {
+    foreach ($db->query("SELECT company_id, deal_text FROM partner_extra WHERE deal_text <> ''") as $r) {
+        $texts[(int) $r['company_id']] = (string) $r['deal_text'];
+    }
+} catch (Throwable $e) {
+}
+
 admin_head('All discounts', 'deals');
 ?>
 <h1>All discounts</h1>
 <p class="ad-muted">The % off each account holder gets at each partner. Empty means no discount for that account, 100 means free.
   Change the numbers and press <strong>Save all</strong>. For the normal price and the price with the account, open the partner.</p>
+<p class="ad-muted"><strong>Deal that is not a %?</strong> Write it in the last column, for example "Buy 1, get 1 free" or "Free drink with every lunch". It shows on the partner page and in the partner list. You can use it alone or together with the %.</p>
 <form class="ad-filter" method="get">
   <select name="country" onchange="this.form.submit()"><option value="1"<?= $country === 1 ? ' selected' : '' ?>>Dj'aki mi ta! (Curaçao)</option><option value="2"<?= $country === 2 ? ' selected' : '' ?>>Rib'e luga! (Netherlands)</option></select>
   <input type="search" id="dl-search" class="ad-in" placeholder="Search partner" style="max-width:240px">
 </form>
 <form method="post"><?= csrf_field() ?>
   <div class="ad-wrap"><table class="ad-table" id="dl">
-    <thead><tr><th>Partner</th><?php foreach ($cards as $label): ?><th><?= e($label) ?> %</th><?php endforeach; ?></tr></thead>
+    <thead><tr><th>Partner</th><?php foreach ($cards as $label): ?><th><?= e($label) ?> %</th><?php endforeach; ?><th>Or a deal in words</th></tr></thead>
     <tbody>
     <?php foreach ($partners as $p): $cid = (int) $p['id']; ?>
       <tr data-name="<?= e(mb_strtolower($p['name'])) ?>">
@@ -68,6 +85,7 @@ admin_head('All discounts', 'deals');
         <?php foreach ($cards as $v => $label): $val = $pct[$cid][$v] ?? ''; ?>
           <td><input class="ad-in" style="width:76px" type="text" inputmode="decimal" name="p[<?= $cid ?>][<?= $v ?>]" value="<?= e($val) ?>" placeholder="–"><input type="hidden" name="o[<?= $cid ?>][<?= $v ?>]" value="<?= e($val) ?>"></td>
         <?php endforeach; ?>
+        <td><input class="ad-in" style="min-width:220px" type="text" maxlength="160" name="dt[<?= $cid ?>]" value="<?= e($texts[$cid] ?? '') ?>" placeholder="e.g. Buy 1, get 1 free"><input type="hidden" name="odt[<?= $cid ?>]" value="<?= e($texts[$cid] ?? '') ?>"></td>
       </tr>
     <?php endforeach; ?>
     </tbody>

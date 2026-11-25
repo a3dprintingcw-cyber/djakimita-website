@@ -74,6 +74,13 @@ admin_post(function () use (&$id, $db, $days, $cardTypes) {
             admin_log('partner_video', '#' . $id . ' ' . $p['name'] . ' (upload)');
             flash('Video uploaded. It shows on the partner page.');
             break;
+        case 'deal_text':
+            $dt = mb_substr(trim((string) $_POST['deal_text']), 0, 160);
+            $db->prepare('INSERT INTO partner_extra (company_id, deal_text) VALUES (:c, :t) ON DUPLICATE KEY UPDATE deal_text = VALUES(deal_text)')
+                ->execute(['c' => $id, 't' => $dt]);
+            admin_log('partner_deal_text', '#' . $id . ' ' . $p['name'] . ': ' . $dt);
+            flash($dt === '' ? 'Deal text removed.' : 'Saved. The deal shows on the partner page and in the list.');
+            break;
         case 'note':
             $note = trim((string) $_POST['note']);
             $db->prepare('INSERT INTO partner_extra (company_id, note) VALUES (:c, :n) ON DUPLICATE KEY UPDATE note = VALUES(note)')
@@ -346,6 +353,13 @@ if ($id) {
         <button class="btn btn-sm" name="action" value="photo_add">Upload</button>
       </form>
     </div>
+
+    <form method="post" class="ad-box ad-form"><?= csrf_field() ?>
+      <h2 class="full" style="margin-top:0">Deal in words</h2>
+      <div class="full"><label>For a deal that is not a %, for example "Buy 1, get 1 free" or "Free drink with every lunch". Leave empty if the % says it all.</label>
+        <input type="text" name="deal_text" maxlength="160" value="<?= e(partner_deal_text($id)) ?>" placeholder="Buy 1, get 1 free"></div>
+      <div class="full ad-actions"><button class="btn btn-sm" name="action" value="deal_text">Save deal</button></div>
+    </form>
 
     <form method="post" class="ad-box ad-form"><?= csrf_field() ?>
       <h2 class="full" style="margin-top:0">Please note</h2>

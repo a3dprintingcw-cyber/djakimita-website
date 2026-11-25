@@ -50,7 +50,7 @@ function legal_text(string $page, string $lang): array
         ]],
         ['3. Who can get an account', [
             'Accounts are only for people born in Curaçao. For a family account (up to 5 people), at least one parent must be born in Curaçao.',
-            'Ages: Kids account 0 to 12, Teen account 13 to 17, Adult account 18 and up, Senior account 60 and up. A family account can have up to 3 children aged 17 or younger. Age is counted by year of birth.',
+            'Ages: Kids account 0 to 12, Teen account 13 to 17, Adult account 18 and up, Senior account 60 and up. A Family account is for 2 adults and up to 3 children or teens aged 17 or younger. Age is counted by year of birth.',
             'The buyer must be 18 or older. Accounts for children and teens are bought by a parent or guardian.',
         ]],
         ['4. The one-time check', [
@@ -93,7 +93,7 @@ function legal_text(string $page, string $lang): array
         ]],
         ['3. Wie een account kan krijgen', [
             'Accounts zijn alleen voor mensen die op Curaçao geboren zijn. Voor een gezinsaccount (maximaal 5 personen) moet minstens één ouder op Curaçao geboren zijn.',
-            'Leeftijden: Kids-account 0 tot 12, Teen-account 13 tot 17, Adult-account 18 en ouder, Senior-account 60 en ouder. Op een gezinsaccount passen maximaal 3 kinderen tot en met 17 jaar. De leeftijd telt per geboortejaar.',
+            'Leeftijden: Kids-account 0 tot 12, Teen-account 13 tot 17, Adult-account 18 en ouder, Senior-account 60 en ouder. Een gezinsaccount is voor 2 volwassenen en maximaal 3 kinderen of tieners tot en met 17 jaar. De leeftijd telt per geboortejaar.',
             'De koper moet 18 jaar of ouder zijn. Accounts voor kinderen en tieners worden gekocht door een ouder of voogd.',
         ]],
         ['4. De eenmalige controle', [

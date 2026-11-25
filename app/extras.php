@@ -10,7 +10,7 @@ function public_dir(): string
 
 // ---------------------------------------------------------------------------
 // Age rules per card (by year of birth, as the team asked)
-//   Kids 0-12, Teen 13-17, Adult 18+, Senior 60+, Family: at most 3 children up to 17.
+//   Kids 0-12, Teen 13-17, Adult 18+, Senior 60+, Family: 2 adults and up to 3 children or teens up to 17.
 // ---------------------------------------------------------------------------
 function age_by_year(string $birth): int
 {
@@ -21,6 +21,7 @@ function age_by_year(string $birth): int
 function card_age_error(string $card, array $holders): ?string
 {
     $kids = 0;
+    $adults = 0;
     foreach ($holders as $h) {
         $age = age_by_year($h['birth']);
         $vars = ['name' => $h['name'], 'year' => substr($h['birth'], 0, 4)];
@@ -48,11 +49,13 @@ function card_age_error(string $card, array $holders): ?string
             case 'family':
                 if ($age <= 17) {
                     $kids++;
+                } else {
+                    $adults++;
                 }
                 break;
         }
     }
-    if ($card === 'family' && $kids > 3) {
+    if ($card === 'family' && ($kids > 3 || $adults > 2)) {
         return t('co.age.family');
     }
     return null;
@@ -120,6 +123,18 @@ function partner_video(int $companyId): string
         $st = db()->prepare('SELECT video_url FROM partner_extra WHERE company_id = :c');
         $st->execute(['c' => $companyId]);
         return (string) $st->fetchColumn();
+    } catch (Throwable $e) {
+        return '';
+    }
+}
+
+/** Deal in words, for deals that are not a % (set by staff). */
+function partner_deal_text(int $companyId): string
+{
+    try {
+        $st = db()->prepare('SELECT deal_text FROM partner_extra WHERE company_id = :c');
+        $st->execute(['c' => $companyId]);
+        return trim((string) $st->fetchColumn());
     } catch (Throwable $e) {
         return '';
     }

@@ -76,7 +76,7 @@ page_header("Dj'aki mi ta! · " . t('hero.title'));
       <?php foreach ($featured as $p): ?>
         <a class="pcard" href="/partner.php?id=<?= (int) $p['id'] ?>">
           <span class="pcard-img"><img src="<?= e(partner_image_url($p)) ?>" alt="" loading="lazy" width="400" height="300"></span>
-          <?php if ($lbl = discount_label($p['best_percent'], $p['low_percent'] ?? null)): ?><span class="badge"><?= e($lbl) ?></span><?php endif; ?>
+          <?php if ($lbl = discount_label($p['best_percent'], $p['low_percent'] ?? null) ?: short_deal($p['deal_text'] ?? '')): ?><span class="badge"><?= e($lbl) ?></span><?php endif; ?>
           <span class="pcard-body">
             <strong><?= e($p['name']) ?></strong>
             <span class="muted small"><?= icon('pin', 14) ?> <?= e(trim(explode(',', (string) $p['location'])[0])) ?></span>

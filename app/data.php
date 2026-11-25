@@ -135,6 +135,7 @@ function partners(?int $category = null, string $search = '', ?int $limit = null
                    LEFT(v.description, 400) AS description,
                    MAX(d.the_percent) AS best_percent,
                    MIN(d.the_percent) AS low_percent,
+                   (SELECT px.deal_text FROM partner_extra px WHERE px.company_id = v.id) AS deal_text,
                    (SELECT i.id FROM voucher_company_images i WHERE i.company_id = v.id ORDER BY i.sort_order, i.id LIMIT 1) AS image_id,
                    (v.picture IS NOT NULL AND LENGTH(v.picture) > 0) AS has_picture
             FROM voucher_company v
@@ -209,6 +210,13 @@ function partner_image_url(array $p, string $size = 'm'): string
  * Badge text for a partner. Same discount for every account: "20% off" or "Free".
  * Different discounts per account: "Different discounts", so people open the partner to see them.
  */
+/** Deal in words, short enough for a badge. */
+function short_deal(?string $text): string
+{
+    $text = trim((string) $text);
+    return mb_strlen($text) > 28 ? rtrim(mb_substr($text, 0, 26)) . '…' : $text;
+}
+
 function discount_label($percent, $low = null): string
 {
     $p = (int) round((float) $percent);

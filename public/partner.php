@@ -46,7 +46,8 @@ page_header($p['name'] . " · Dj'aki mi ta!", 'partners', mb_substr(strip_tags((
       </div>
 
       <div class="detail-info">
-        <?php if ($best > 0): ?><span class="badge badge-inline"><?= e(discount_label($best, $low)) ?></span><?php endif; ?>
+        <?php $dealText = partner_deal_text((int) $p['id']); ?>
+        <?php if ($best > 0): ?><span class="badge badge-inline"><?= e(discount_label($best, $low)) ?></span><?php elseif ($dealText !== ''): ?><span class="badge badge-inline"><?= e(short_deal($dealText)) ?></span><?php endif; ?>
         <h1><?= e($p['name']) ?></h1>
         <div class="desc"><?= nl2br(e(trim((string) $p['description']))) ?></div>
 
@@ -63,9 +64,11 @@ page_header($p['name'] . " · Dj'aki mi ta!", 'partners', mb_substr(strip_tags((
               $rows = [$rows[0] + ['all' => true]];
           }
         ?>
-        <?php if ($rows): ?>
+        <?php if ($rows || $dealText !== ''): ?>
           <div class="box">
             <h2 class="h3"><?= e(t('partner.discounts')) ?></h2>
+            <?php if ($dealText !== ''): ?><p class="deal-text"><?= e($dealText) ?></p><?php endif; ?>
+            <?php if ($rows): ?>
             <table class="deals">
               <?php foreach ($rows as $d): $pc = (int) round((float) $d['the_percent']); $was = (float) $d['was']; ?>
                 <tr>
@@ -79,6 +82,7 @@ page_header($p['name'] . " · Dj'aki mi ta!", 'partners', mb_substr(strip_tags((
                 </tr>
               <?php endforeach; ?>
             </table>
+            <?php endif; ?>
           </div>
         <?php else: ?>
           <div class="box"><h2 class="h3"><?= e(t('partner.discounts')) ?></h2><p class="muted" style="margin:0"><?= e(t('deals.see')) ?></p></div>

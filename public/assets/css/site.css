@@ -443,3 +443,4 @@ p { margin: 0 0 1em; }
 .robot input { width: 22px; height: 22px; accent-color: var(--green); }
 .cf-turnstile { margin: 6px 0 16px; }
 @media (max-width: 520px) { .brand img:not(.brand-word) { display: none; } .nav-right a { white-space: nowrap; } }
+.deal-text { margin: 0 0 12px; padding: 12px 16px; border-radius: 12px; background: #fff6d6; border: 1px solid #ecd27a; color: #4a3800; font-weight: 700; font-size: 1.05rem; }
