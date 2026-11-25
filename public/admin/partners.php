@@ -391,7 +391,7 @@ if ($id) {
       </div>
       <div class="ad-box">
         <h2 style="margin-top:0">Partner logins</h2>
-        <p class="ad-muted">For the partner's staff: to log in to the partner dashboard and scan accounts. After logging in, they can change their own password there (Change password).</p>
+        <p class="ad-muted">For the partner's staff. They log in at <strong>djakimita.com/partner-login.php</strong> to check accounts (QR code, barcode or number), register visits, see their numbers and edit their own page and photos. They can change their own password there. They cannot change discounts or switch their page off.</p>
         <?php foreach ($logins as $lg): ?>
           <div class="ad-actions" style="margin-top:8px">
             <strong><?= e($lg['name']) ?></strong> <?= (int) $lg['active'] ? '<span class="ad-tag ok">Active</span>' : '<span class="ad-tag">Off</span>' ?>

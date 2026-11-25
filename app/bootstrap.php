@@ -112,6 +112,7 @@ require __DIR__ . '/verify.php';
 require __DIR__ . '/admin.php';
 require __DIR__ . '/extras.php';
 require __DIR__ . '/botcheck.php';
+require __DIR__ . '/partner_portal.php';
 require __DIR__ . '/countdown.php';
 
 countdown_gate();

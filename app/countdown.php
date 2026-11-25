@@ -225,7 +225,7 @@ function countdown_gate(): void
     }
     $script = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
     $path = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
-    if (in_array($script, COUNTDOWN_OPEN, true) || str_starts_with($path, '/admin')) {
+    if (in_array($script, COUNTDOWN_OPEN, true) || str_starts_with($path, '/admin') || str_starts_with($path, '/partner/') || $script === 'partner-login.php') {
         return;
     }
     // Staff can look at the full site before launch with ?peek=<preview key>
