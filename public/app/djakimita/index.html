@@ -9,7 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Dj'aki mi ta!">
 <link rel="icon" href="./icon.png">
-<link rel="apple-touch-icon" href="./icon.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="manifest" href="./manifest.webmanifest">
 <style>
   html, body { height: 100%; margin: 0; background: #f1f7ef; }
   body { overflow: hidden; }
@@ -20,5 +21,6 @@
 <noscript>Turn on JavaScript to use the Dj'aki mi ta! app.</noscript>
 <div id="root"></div>
 <script src="./js/static/js/web/AppEntry-0b22369445d57a36fbaa084c98eb2d37.js" defer></script>
+<script>if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {})); }</script>
 </body>
 </html>

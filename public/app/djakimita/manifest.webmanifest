@@ -1,0 +1,17 @@
+{
+  "name": "Dj'aki mi ta!",
+  "short_name": "Dj'aki mi ta!",
+  "description": "Your Dj'aki mi ta! account: discounts at partners all over Curaçao.",
+  "id": "/app/djakimita/",
+  "start_url": "/app/djakimita/",
+  "scope": "/app/djakimita/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#187c19",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
