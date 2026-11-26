@@ -85,6 +85,12 @@ admin_post(function () use ($id, $db, $cardTypes) {
             admin_log('card_given', $cardTypes[$pkg] . ' account to customer #' . $id . ' until ' . $d . ' · ' . trim((string) ($_POST['why'] ?? '')));
             flash('Account added. It shows in the app right away.');
             break;
+        case 'reset_link':
+            $token = create_password_token($id, 24);
+            $_SESSION['pw_link'] = ['id' => $id, 'link' => rtrim((string) config('base_url'), '/') . '/set-password.php?t=' . $token];
+            admin_log('password_link_copied', '#' . $id);
+            flash('Password link made. Copy it below and send it to the customer, for example by WhatsApp. It works for 24 hours, one time.');
+            break;
         case 'reset':
             send_reset_email($id, (string) $c['email']);
             admin_log('password_link_sent', '#' . $id);
@@ -188,7 +194,13 @@ if ($id) {
       <div class="ad-box">
         <h2 style="margin-top:0">Login</h2>
         <p class="ad-muted">Send them a link to choose a new password. It works for 3 days. Staff never see or set passwords.</p>
-        <form method="post"><?= csrf_field() ?><button class="btn btn-sm btn-outline" name="action" value="reset">Send password link</button></form>
+        <form method="post" class="ad-actions"><?= csrf_field() ?><button class="btn btn-sm btn-outline" name="action" value="reset">Send password link by email</button>
+          <button class="btn btn-sm btn-outline" name="action" value="reset_link">Get the link to copy</button></form>
+        <?php if (($_SESSION['pw_link']['id'] ?? 0) === $id): $pl = $_SESSION['pw_link']['link']; unset($_SESSION['pw_link']); ?>
+          <div style="margin-top:10px"><input type="text" readonly value="<?= e($pl) ?>" onclick="this.select()" style="width:100%">
+            <button type="button" class="btn btn-sm" style="margin-top:6px" onclick="navigator.clipboard.writeText(this.previousElementSibling.value).then(()=>this.textContent='Copied')">Copy link</button>
+            <p class="ad-muted" style="margin:6px 0 0">Only shown once. The customer opens it, chooses a password, and can then log in on the website and in the app.</p></div>
+        <?php endif; ?>
         <?php if ($esims): ?>
           <h2>eSIM</h2>
           <ul><?php foreach ($esims as $e): ?><li><?= e($e['phone']) ?> · <?= (int) $e['confirmed'] === 2 ? 'sent' : ((int) $e['confirmed'] === 1 ? 'paid, to send' : 'not paid') ?></li><?php endforeach; ?></ul>
