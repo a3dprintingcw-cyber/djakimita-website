@@ -48,7 +48,7 @@ admin_post(function () use ($id, $db, $cardTypes) {
                 . '<p>Choose your password with the button below (the link works for 7 days). Then log in to the Dj\'aki mi ta! app with ' . e($email) . '.</p>'
                 . '<p><a href="' . e($link) . '" style="display:inline-block;background:#187c19;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Choose my password</a></p>'));
         }
-        flash(($isNew ? 'New customer made' : 'This email was already a customer') . ' and the ' . ($paid ? '' : 'free ') . 'account is added. Copy the password link under Login and send it to them (by WhatsApp or email), so they can log in to the app.');
+        flash(($isNew ? 'New customer made' : 'This email was already a customer') . ' and the ' . ($paid ? '' : 'free ') . 'account is added. Now add the people on the account under it (name and birth date' . ($pkg === 4 ? ', for a Family account everyone in the family' : '') . '). Then copy the password link under Login and send it to them, so they can log in to the app.');
         header('Location: /admin/customers.php?id=' . $cid);
         exit;
     }
@@ -98,16 +98,93 @@ admin_post(function () use ($id, $db, $cardTypes) {
                 if ((int) $online->fetchColumn() > 0) {
                     throw new RuntimeException('This account was paid online, so it stays "Paid". For a refund, see Orders.');
                 }
-                $db->prepare("DELETE FROM sale_receits WHERE client_package_id = :cp AND token LIKE 'desk-%'")->execute(['cp' => $cp]);
+                // Keep the row (the people on the account hang on it), just mark it as given instead of sold
+                $db->prepare("UPDATE sale_receits SET status = 2, token = CONCAT('given-', SUBSTRING(token, 6)) WHERE client_package_id = :cp AND token LIKE 'desk-%'")->execute(['cp' => $cp]);
                 admin_log('account_made_free', 'account #' . $cp . ' of customer #' . $id);
                 flash('Changed to a free account.');
             } else {
-                $db->prepare("INSERT INTO sale_receits (email, user_id, package, dia_orario, status, currency, email_status, token, client_package_id)
-                              VALUES (:e, :u, :p, NOW(), 1, 'XCG', 0, :t, :cp)")
-                    ->execute(['e' => (string) $c['email'], 'u' => $id, 'p' => (int) $pk, 't' => 'desk-' . bin2hex(random_bytes(8)), 'cp' => $cp]);
+                $g = $db->prepare("UPDATE sale_receits SET status = 1, currency = 'XCG', dia_orario = NOW(), token = CONCAT('desk-', SUBSTRING(token, 7)) WHERE client_package_id = :cp AND status = 2 AND token LIKE 'given-%'");
+                $g->execute(['cp' => $cp]);
+                if (!$g->rowCount()) {
+                    $db->prepare("INSERT INTO sale_receits (email, user_id, package, dia_orario, status, currency, email_status, token, client_package_id)
+                                  VALUES (:e, :u, :p, NOW(), 1, 'XCG', 0, :t, :cp)")
+                        ->execute(['e' => (string) $c['email'], 'u' => $id, 'p' => (int) $pk, 't' => 'desk-' . bin2hex(random_bytes(8)), 'cp' => $cp]);
+                }
                 admin_log('account_made_paid', 'account #' . $cp . ' of customer #' . $id . ' (paid at the desk)');
                 flash('Changed to paid (at the desk).');
             }
+            break;
+        case 'holder_add':
+        case 'holder_save':
+        case 'holder_del':
+            // People on an account (names and birth dates). For an account without an order (given in the
+            // backend) a holder record is made with status 2: it is not an order and not counted as a sale.
+            $cp = (int) $_POST['cp'];
+            $own = $db->prepare('SELECT package_id FROM clients_package WHERE id = :cp AND users_id = :u');
+            $own->execute(['cp' => $cp, 'u' => $id]);
+            $pk = $own->fetchColumn();
+            if ($pk === false) {
+                throw new RuntimeException('Account not found.');
+            }
+            if ($action === 'holder_del') {
+                $db->prepare('DELETE h FROM client_package_customers h JOIN sale_receits s ON s.id = h.order_id
+                              WHERE h.id = :h AND s.client_package_id = :cp')->execute(['h' => (int) $_POST['h'], 'cp' => $cp]);
+                admin_log('holder_removed', 'account #' . $cp . ' of customer #' . $id);
+                flash('Person removed from the account.');
+                break;
+            }
+            $name = mb_substr(trim((string) $_POST['hname']), 0, 120);
+            $birth = (string) $_POST['hbirth'];
+            if ($name === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $birth)) {
+                throw new RuntimeException('Fill in a name and a birth date.');
+            }
+            $slug = [1 => 'kids', 2 => 'teen', 3 => 'adult', 4 => 'family', 5 => 'senior'][(int) $pk] ?? '';
+            if ($slug !== '' && function_exists('card_age_error')) {
+                // Check the ages with everyone on the account (Family: 2 adults and up to 3 children or teens)
+                $others = $db->prepare('SELECT h.id, h.name, h.client_birthdate AS birth FROM client_package_customers h
+                                        JOIN sale_receits s ON s.id = h.order_id WHERE s.client_package_id = :cp AND s.status IN (1, 2)');
+                $others->execute(['cp' => $cp]);
+                $all = [];
+                foreach ($others->fetchAll() as $o) {
+                    if ($action === 'holder_save' && (int) $o['id'] === (int) $_POST['h']) {
+                        continue;
+                    }
+                    if ($o['birth']) {
+                        $all[] = ['name' => $o['name'], 'birth' => $o['birth']];
+                    }
+                }
+                $all[] = ['name' => $name, 'birth' => $birth];
+                if ($err = card_age_error($slug, $all)) {
+                    throw new RuntimeException($err);
+                }
+            }
+            if ($action === 'holder_save') {
+                $db->prepare('UPDATE client_package_customers h JOIN sale_receits s ON s.id = h.order_id
+                              SET h.name = :n, h.client_birthdate = :b WHERE h.id = :h AND s.client_package_id = :cp')
+                    ->execute(['n' => $name, 'b' => $birth, 'h' => (int) $_POST['h'], 'cp' => $cp]);
+                admin_log('holder_changed', 'account #' . $cp . ' of customer #' . $id);
+                flash('Saved.');
+                break;
+            }
+            $o = $db->prepare('SELECT id FROM sale_receits WHERE client_package_id = :cp AND status IN (1, 2) ORDER BY id LIMIT 1');
+            $o->execute(['cp' => $cp]);
+            $orderId = (int) $o->fetchColumn();
+            if (!$orderId) {
+                $db->prepare("INSERT INTO sale_receits (email, user_id, package, dia_orario, status, currency, email_status, token, client_package_id)
+                              VALUES (:e, :u, :p, NOW(), 2, '', 1, :t, :cp)")
+                    ->execute(['e' => (string) $c['email'], 'u' => $id, 'p' => (int) $pk, 't' => 'given-' . bin2hex(random_bytes(8)), 'cp' => $cp]);
+                $orderId = (int) $db->lastInsertId();
+            }
+            $cnt = $db->prepare('SELECT COUNT(*) FROM client_package_customers WHERE order_id = :o');
+            $cnt->execute(['o' => $orderId]);
+            $max = (int) $pk === 4 ? 5 : 1;
+            if ((int) $cnt->fetchColumn() >= $max) {
+                throw new RuntimeException((int) $pk === 4 ? 'A Family account has room for 5 people (2 adults and 3 children or teens).' : 'This account is for one person. Change the name instead.');
+            }
+            $db->prepare('INSERT INTO client_package_customers (name, client_id, client_birthdate, order_id) VALUES (:n, "", :b, :o)')
+                ->execute(['n' => $name, 'b' => $birth, 'o' => $orderId]);
+            admin_log('holder_added', 'account #' . $cp . ' of customer #' . $id);
+            flash('Person added to the account.');
             break;
         case 'card_date':
             $d = (string) $_POST['expire'];
@@ -217,6 +294,33 @@ if ($id) {
             <button class="btn btn-sm btn-outline" name="action" value="make_paid" onclick="return confirm('Mark this account as paid at the desk?')">Mark as paid</button>
           <?php endif; ?>
         </form>
+        <?php
+          $hp = $db->prepare('SELECT h.id, h.name, h.client_birthdate AS birth FROM client_package_customers h
+                              JOIN sale_receits s ON s.id = h.order_id WHERE s.client_package_id = :cp AND s.status IN (1, 2) ORDER BY h.id');
+          $hp->execute(['cp' => (int) $k['id']]);
+          $people = $hp->fetchAll();
+          $room = (int) $k['package_id'] === 4 ? 5 : 1;
+        ?>
+        <div class="ad-people" style="margin:6px 0 14px 12px;padding:10px 12px;border-left:3px solid #dfe8da">
+          <div class="ad-muted" style="margin-bottom:6px">People on this account<?= (int) $k['package_id'] === 4 ? ' (Family: 2 adults and up to 3 children or teens up to 17)' : '' ?></div>
+          <?php foreach ($people as $h): ?>
+            <form method="post" class="ad-actions" style="margin:4px 0"><?= csrf_field() ?>
+              <input type="hidden" name="cp" value="<?= (int) $k['id'] ?>"><input type="hidden" name="h" value="<?= (int) $h['id'] ?>">
+              <input class="ad-in" type="text" name="hname" value="<?= e($h['name']) ?>" style="width:220px" aria-label="Name">
+              <input class="ad-in" type="date" name="hbirth" value="<?= e((string) $h['birth']) ?>" style="width:170px" aria-label="Birth date">
+              <button class="btn btn-sm btn-outline" name="action" value="holder_save">Save</button>
+              <button class="btn btn-sm btn-outline" name="action" value="holder_del" onclick="return confirm('Remove <?= e(addslashes($h['name'])) ?> from this account?')">Remove</button>
+            </form>
+          <?php endforeach; ?>
+          <?php if (count($people) < $room): ?>
+            <form method="post" class="ad-actions" style="margin:4px 0"><?= csrf_field() ?>
+              <input type="hidden" name="cp" value="<?= (int) $k['id'] ?>">
+              <input class="ad-in" type="text" name="hname" placeholder="Full name" style="width:220px" required>
+              <input class="ad-in" type="date" name="hbirth" style="width:170px" required aria-label="Birth date">
+              <button class="btn btn-sm" name="action" value="holder_add">+ Add person</button>
+            </form>
+          <?php elseif (!$people): ?><p class="ad-muted">No names yet.</p><?php endif; ?>
+        </div>
       <?php endforeach; ?>
       <details style="margin-top:14px">
         <summary class="btn btn-sm">Give an account (free, influencer, replacement)</summary>

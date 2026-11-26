@@ -109,7 +109,7 @@ function client_cards(int $clientId): array
 {
     $st = db()->prepare('SELECT cp.id, cp.package_id, cp.expire, s.id AS order_id
                          FROM clients_package cp
-                         LEFT JOIN sale_receits s ON s.client_package_id = cp.id AND s.status = 1
+                         LEFT JOIN sale_receits s ON s.client_package_id = cp.id AND s.status IN (1, 2)
                          WHERE cp.users_id = :c ORDER BY cp.expire DESC, cp.id DESC');
     $st->execute(['c' => $clientId]);
     $cards = $st->fetchAll();

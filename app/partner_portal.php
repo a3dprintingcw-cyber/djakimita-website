@@ -129,7 +129,7 @@ function pp_lookup(int $customerId, int $companyId): ?array
     try {
         $st = $db->prepare('SELECT h.name, h.client_birthdate AS birth, s.user_id AS client_id
                             FROM sale_receits s JOIN client_package_customers h ON h.order_id = s.id
-                            WHERE s.client_package_id = :a AND s.status = 1 ORDER BY h.id');
+                            WHERE s.client_package_id = :a AND s.status IN (1, 2) ORDER BY h.id');
         $st->execute(['a' => $accountId]);
         foreach ($st->fetchAll() as $h) {
             $v = function_exists('find_verification') && $h['birth'] ? find_verification((int) $h['client_id'], (string) $h['name'], (string) $h['birth']) : null;

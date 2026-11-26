@@ -183,7 +183,7 @@ $from = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['from'] ?? '')) ? (s
 $page = max(1, (int) ($_GET['p'] ?? 1));
 $per = 40;
 
-$where = ["s.token IS NOT NULL", "s.token <> ''"];
+$where = ["s.token IS NOT NULL", "s.token <> ''", "s.status <> 2"]; // status 2 = names for a given (free) account, not an order
 $params = [];
 if ($status === 'paid') {
     $where[] = 's.status = 1';

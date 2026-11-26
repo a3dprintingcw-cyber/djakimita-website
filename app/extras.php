@@ -365,7 +365,7 @@ function daily_jobs(bool $force = false): array
     if (setting('birthday_on', '1') === '1') {
         $kind = 'bday' . date('Y');
         $st = db()->prepare("SELECT h.id, h.name, s.email FROM client_package_customers h
-            JOIN sale_receits s ON s.id = h.order_id AND s.status = 1
+            JOIN sale_receits s ON s.id = h.order_id AND s.status IN (1, 2)
             JOIN clients_package cp ON cp.id = s.client_package_id AND cp.expire >= CURDATE()
             WHERE DATE_FORMAT(h.client_birthdate, '%m-%d') = DATE_FORMAT(CURDATE(), '%m-%d')");
         $st->execute();
