@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'visit
         if ($why !== '') {
             pp_flash('Not registered: ' . $why);
         } else {
-            pp_register_visit($acc, $cid);
+            pp_register_visit((int) $a['id'], $cid);
             pp_flash('Visit registered for account ' . PP_ACCOUNT_PREFIX . $acc . '. Give the discount.');
         }
     }
@@ -47,7 +47,7 @@ pp_head('Check an account', $u, 'scan');
     <p class="big <?= $why === '' ? 'ok-t' : 'no-t' ?>"><?= $why === '' ? '✓ Valid account' : '✕ No discount now' ?></p>
     <?php if ($why !== ''): ?><p style="margin:0 0 6px;font-weight:600"><?= e($why) ?></p><?php endif; ?>
     <div class="pp-meta">
-      <div><b><?= e($a['type']) ?></b><span>Account <?= PP_ACCOUNT_PREFIX . (int) $a['id'] ?></span></div>
+      <div><b><?= e($a['type']) ?></b><span>Account <?= PP_ACCOUNT_PREFIX . (int) $a['customer'] ?></span></div>
       <div><b><?= $a['expire'] ? e(date('d-m-Y', strtotime((string) $a['expire']))) : '–' ?></b><span>Valid until</span></div>
       <div><b><?= $a['visits_total'] === null ? '–' : max(0, $a['visits_total'] - $a['visits_used']) . ' of ' . $a['visits_total'] ?></b><span>Visits left at your business</span></div>
       <div><b><?php
@@ -64,7 +64,7 @@ pp_head('Check an account', $u, 'scan');
       <div class="pp-holders">
         <?php foreach ($a['holders'] as $h): ?>
           <div class="pp-holder">
-            <?php if ($h['photo']): ?><img src="/partner/photo.php?v=<?= (int) $h['photo'] ?>&amp;a=<?= (int) $a['id'] ?>" alt="Photo of <?= e($h['name']) ?>"><?php else: ?><i>?</i><?php endif; ?>
+            <?php if ($h['photo']): ?><img src="/partner/photo.php?v=<?= (int) $h['photo'] ?>&amp;a=<?= (int) $a['customer'] ?>" alt="Photo of <?= e($h['name']) ?>"><?php else: ?><i>?</i><?php endif; ?>
             <div><?= e($h['name']) ?><small><?= $h['year'] ? 'Born ' . e($h['year']) . ' · ' : '' ?>
               <?php if ($h['check'] === VERIFY_APPROVED): ?><span class="pp-tag ok">Checked</span><?php elseif ($h['check'] === VERIFY_PENDING): ?><span class="pp-tag wait">Check pending</span><?php elseif ($h['check'] === VERIFY_REJECTED): ?><span class="pp-tag no">Check failed</span><?php else: ?><span class="pp-tag">Not checked</span><?php endif; ?></small></div>
           </div>
@@ -74,7 +74,7 @@ pp_head('Check an account', $u, 'scan');
     <?php endif; ?>
     <?php if ($a['last_visit']): ?><p class="pp-muted" style="margin:0 0 12px">Last visit at your business: <?= e(date('d-m-Y H:i', strtotime((string) $a['last_visit']))) ?></p><?php endif; ?>
     <?php if ($why === ''): ?>
-      <form method="post"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="acc" value="<?= (int) $a['id'] ?>">
+      <form method="post"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="acc" value="<?= (int) $a['customer'] ?>">
         <button class="btn btn-lg" name="action" value="visit" style="width:100%">Register visit and give the discount</button></form>
     <?php endif; ?>
   </div>

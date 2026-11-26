@@ -1,6 +1,7 @@
 <?php
 // "My savings" in the app: what an account saved at partners, from the registered visits.
-// ?id=<account id as stored by the app>&country=1|2. Saved per visit = normal price - account price.
+// ?id=<customer number as stored by the app (clients.id)>&country=1|2. All accounts of that customer count.
+// Saved per visit = normal price - account price.
 require __DIR__ . '/_db.php';
 $id = (int) ($_GET['id'] ?? 0);
 $country = (int) ($_GET['country'] ?? 1) === 2 ? 2 : 1;
@@ -16,7 +17,7 @@ try {
         FROM client_package_info i
         JOIN clients_package p ON p.id = i.users_package_id
         JOIN voucher_company v ON v.id = i.company_id
-        WHERE i.users_package_id = :a AND v.country = :c");
+        WHERE p.users_id = :a AND v.country = :c");
     $st->execute(['a' => $id, 'c' => $country]);
     $rows = $st->fetchAll();
 } catch (Throwable $e) {

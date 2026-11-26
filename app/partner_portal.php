@@ -67,7 +67,7 @@ function pp_login(string $name, string $password)
     return (int) $u['id'];
 }
 
-/** Turn what was scanned or typed into the account id (QR code, barcode or the printed account number). */
+/** Turn what was scanned or typed into the customer number (QR code, barcode or the account number shown in the app). */
 function pp_account_id(string $raw): int
 {
     $d = preg_replace('/\D/', '', $raw);
@@ -77,20 +77,32 @@ function pp_account_id(string $raw): int
     return $d === '' ? 0 : (int) $d;
 }
 
-/** Everything the partner needs to see about an account. Null when the number does not exist. */
-function pp_lookup(int $accountId, int $companyId): ?array
+/**
+ * Everything the partner needs to see about a customer's account. The number in the customer's QR code,
+ * barcode and "Account number" is their customer number (clients.id). Visits are counted per account
+ * (clients_package.id), like the app does. With more than one account, the active one ending last is used.
+ * Null when the customer does not exist.
+ */
+function pp_lookup(int $customerId, int $companyId): ?array
 {
-    if ($accountId <= 0) {
+    if ($customerId <= 0) {
         return null;
     }
     $db = db();
-    $st = $db->prepare('SELECT p.id, p.users_id, p.package_id, p.expire, c.username AS first, c.lastName AS last
-                        FROM clients_package p LEFT JOIN clients c ON c.id = p.users_id WHERE p.id = :id');
-    $st->execute(['id' => $accountId]);
+    $st = $db->prepare('SELECT c.id AS customer, c.username AS first, c.lastName AS last, p.id, p.users_id, p.package_id, p.expire
+                        FROM clients c LEFT JOIN clients_package p ON p.users_id = c.id
+                        WHERE c.id = :id ORDER BY (p.expire >= CURDATE()) DESC, p.expire DESC LIMIT 1');
+    $st->execute(['id' => $customerId]);
     $a = $st->fetch();
     if (!$a) {
         return null;
     }
+    if (!$a['id']) {
+        $a['id'] = 0;
+        $a['package_id'] = 0;
+        $a['expire'] = null;
+    }
+    $accountId = (int) $a['id'];
     $a['type'] = package_label((int) $a['package_id']) ?: 'Account';
     $a['valid'] = $a['expire'] && strtotime($a['expire'] . ' 23:59:59') >= time();
 
@@ -141,6 +153,9 @@ function pp_lookup(int $accountId, int $companyId): ?array
 /** Why a visit cannot be registered right now, or '' when it can. */
 function pp_block_reason(array $a): string
 {
+    if (!(int) $a['id']) {
+        return 'This customer has no account yet. They can buy one on djakimita.com.';
+    }
     if (!$a['valid']) {
         return 'This account ended on ' . date('d-m-Y', strtotime((string) $a['expire'])) . '. No discount.';
     }
@@ -179,7 +194,7 @@ function pp_stats(int $companyId): array
 
 function pp_recent(int $companyId, int $limit = 15): array
 {
-    $st = db()->prepare('SELECT i.date, i.users_package_id AS account, p.package_id
+    $st = db()->prepare('SELECT i.date, p.users_id AS account, p.package_id
                          FROM client_package_info i LEFT JOIN clients_package p ON p.id = i.users_package_id
                          WHERE i.company_id = :c ORDER BY i.date DESC LIMIT ' . (int) $limit);
     $st->execute(['c' => $companyId]);
