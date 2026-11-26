@@ -9,7 +9,7 @@ $cardTypes = [1 => 'Kids', 2 => 'Teen', 3 => 'Adult', 4 => 'Family', 5 => 'Senio
 admin_post(function () use ($id, $db, $cardTypes) {
     $action = $_POST['action'] ?? '';
     if ($action === 'free_new') {
-        // A free account for an influencer, artist or prize winner who is not a customer yet
+        // Make an account for someone: paid at the desk (cash, card, bank transfer) or free (influencer, artist, prize)
         $email = mb_strtolower(trim((string) $_POST['email']));
         $first = trim((string) $_POST['first']);
         $last = trim((string) $_POST['last']);
@@ -21,18 +21,31 @@ admin_post(function () use ($id, $db, $cardTypes) {
         if (!isset($cardTypes[$pkg]) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $d)) {
             throw new RuntimeException('Pick an account type and an end date.');
         }
+        $paid = ($_POST['how'] ?? 'free') === 'paid';
         [$cid, $isNew] = find_or_create_client($email, $first, $last, trim((string) ($_POST['phone'] ?? '')));
         $db->prepare('INSERT INTO clients_package (users_id, package_id, expire) VALUES (:u, :p, :d)')->execute(['u' => $cid, 'p' => $pkg, 'd' => $d]);
-        admin_log('card_given', $cardTypes[$pkg] . ' account to customer #' . $cid . ' until ' . $d . ' · ' . trim((string) ($_POST['why'] ?? '')) . ($isNew ? ' (new customer)' : ''));
+        $pkgRow = (int) $db->lastInsertId();
+        if ($paid) {
+            // Paid at the desk: a paid order row, so it shows as "Paid" and counts in the numbers
+            try {
+                $db->prepare("INSERT INTO sale_receits (email, user_id, package, dia_orario, status, currency, email_status, token, client_package_id)
+                              VALUES (:e, :u, :p, NOW(), 1, :cur, 0, :t, :cp)")
+                    ->execute(['e' => $email, 'u' => $cid, 'p' => $pkg, 'cur' => (string) ($_POST['currency'] ?? 'XCG') === 'EUR' ? 'EUR' : 'XCG', 't' => 'desk-' . bin2hex(random_bytes(8)), 'cp' => $pkgRow]);
+            } catch (Throwable $e) {
+                error_log('desk order: ' . $e->getMessage());
+            }
+        }
+        admin_log($paid ? 'account_sold_desk' : 'card_given', $cardTypes[$pkg] . ' account to customer #' . $cid . ' until ' . $d . ($paid ? ' (paid: ' . trim((string) ($_POST['paidhow'] ?? '')) . ')' : '') . ' · ' . trim((string) ($_POST['why'] ?? '')) . ($isNew ? ' (new customer)' : ''));
+        // Password link to copy and send by WhatsApp (works even while email is not set up)
+        $_SESSION['pw_link'] = ['id' => $cid, 'link' => rtrim((string) config('base_url'), '/') . '/set-password.php?t=' . create_password_token($cid, 24 * 7)];
         if (!empty($_POST['mail'])) {
-            $token = create_password_token($cid, 24 * 7);
-            $link = rtrim((string) config('base_url'), '/') . '/set-password.php?t=' . $token;
-            brevo_send($email, "Dj'aki mi ta!: you got a free account", dm_mail('Welcome to Dj\'aki mi ta!',
-                '<p>Hi ' . e($first) . ',</p><p>You got a free <strong>' . e($cardTypes[$pkg]) . ' account</strong>, valid until ' . e(date('d-m-Y', strtotime($d))) . '. Enjoy the discounts at our partners on Curaçao!</p>'
+            $link = $_SESSION['pw_link']['link']; // same link as the one to copy, so both keep working
+            brevo_send($email,  $paid ? "Dj'aki mi ta!: your account is ready" : "Dj'aki mi ta!: you got a free account", dm_mail('Welcome to Dj\'aki mi ta!',
+                '<p>Hi ' . e($first) . ',</p><p>You got a' . ($paid ? 'n' : ' free') . ' <strong>' . e($cardTypes[$pkg]) . ' account</strong>, valid until ' . e(date('d-m-Y', strtotime($d))) . '. Enjoy the discounts at our partners on Curaçao!</p>'
                 . '<p>Choose your password with the button below (the link works for 7 days). Then log in to the Dj\'aki mi ta! app with ' . e($email) . '.</p>'
                 . '<p><a href="' . e($link) . '" style="display:inline-block;background:#187c19;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Choose my password</a></p>'));
         }
-        flash(($isNew ? 'New customer made' : 'This email was already a customer') . ' and the free account is added' . (!empty($_POST['mail']) ? '. They got an email to choose a password.' : '.'));
+        flash(($isNew ? 'New customer made' : 'This email was already a customer') . ' and the ' . ($paid ? '' : 'free ') . 'account is added. Copy the password link under Login and send it to them (by WhatsApp or email), so they can log in to the app.');
         header('Location: /admin/customers.php?id=' . $cid);
         exit;
     }
@@ -261,18 +274,23 @@ admin_head('Customers', 'customers');
   <a href="/admin/customers.php?esim=1" style="margin-left:auto">eSIM requests<?= $esimWaiting ? ' <span class="ad-tag wait">' . $esimWaiting . ' to send</span>' : '' ?></a>
 </form>
 <details class="ad-box">
-  <summary class="btn btn-sm">+ Free account (influencer, artist, prize)</summary>
+  <summary class="btn btn-sm">+ Make an account for someone</summary>
   <form method="post" class="ad-form" style="margin-top:12px"><?= csrf_field() ?>
-    <p class="full ad-muted" style="margin:0">For someone who should get an account without paying. If the email is already a customer, the account is added to them. It shows as "Free account" in the backend.</p>
+    <p class="full ad-muted" style="margin:0">For someone who paid at the desk (cash, card or bank transfer) or who gets it free (influencer, artist, prize). If the email is already a customer, the account is added to them. Afterwards you get a password link to send them, so they can log in to the app.</p>
+    <div class="full"><label>How</label>
+      <label class="check"><input type="radio" name="how" value="paid" checked onchange="this.form.querySelector('.paidbox').hidden=false"> <span>Paid at the desk</span></label>
+      <label class="check"><input type="radio" name="how" value="free" onchange="this.form.querySelector('.paidbox').hidden=true"> <span>Free (shows as "Free account")</span></label></div>
+    <div class="full paidbox"><label>Paid how (for the log)</label><input type="text" name="paidhow" placeholder="e.g. cash XCG 135, bank transfer"> 
+      <label style="margin-top:8px">Currency</label><select name="currency"><option>XCG</option><option>EUR</option></select></div>
     <div><label>First name</label><input type="text" name="first" required></div>
     <div><label>Last name</label><input type="text" name="last"></div>
     <div><label>Email (their login)</label><input type="email" name="email" required></div>
     <div><label>Phone (optional)</label><input type="text" name="phone"></div>
     <div><label>Account</label><select name="package"><?php foreach ($cardTypes as $pid => $n): ?><option value="<?= $pid ?>"<?= $pid === 3 ? ' selected' : '' ?>><?= e($n) ?></option><?php endforeach; ?></select></div>
     <div><label>Valid until</label><input type="date" name="expire" value="<?= e(date('Y-m-d', strtotime('+1 year'))) ?>" required></div>
-    <div class="full"><label>Reason (for the log)</label><input type="text" name="why" placeholder="e.g. influencer @name, artist, prize"></div>
-    <label class="check full"><input type="checkbox" name="mail" value="1" checked> <span>Email them a welcome with a link to choose their password</span></label>
-    <div class="full"><button class="btn btn-sm" name="action" value="free_new">Make free account</button></div>
+    <div class="full"><label>Note (for the log)</label><input type="text" name="why" placeholder="e.g. influencer @name, prize, bought at the market stand"></div>
+    <label class="check full"><input type="checkbox" name="mail" value="1" checked> <span>Also email them a welcome with the password link (only works once the email key is set)</span></label>
+    <div class="full"><button class="btn btn-sm" name="action" value="free_new">Make the account</button></div>
   </form>
 </details>
 <div class="ad-wrap"><table class="ad-table">
