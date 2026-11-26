@@ -21,7 +21,10 @@ admin_post(function () use ($id, $db, $cardTypes) {
         if (!isset($cardTypes[$pkg]) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $d)) {
             throw new RuntimeException('Pick an account type and an end date.');
         }
-        $paid = ($_POST['how'] ?? 'free') === 'paid';
+        if (!in_array($_POST['how'] ?? '', ['free', 'paid'], true)) {
+            throw new RuntimeException('Choose Free or Paid at the desk.');
+        }
+        $paid = $_POST['how'] === 'paid';
         [$cid, $isNew] = find_or_create_client($email, $first, $last, trim((string) ($_POST['phone'] ?? '')));
         $db->prepare('INSERT INTO clients_package (users_id, package_id, expire) VALUES (:u, :p, :d)')->execute(['u' => $cid, 'p' => $pkg, 'd' => $d]);
         $pkgRow = (int) $db->lastInsertId();
@@ -78,6 +81,33 @@ admin_post(function () use ($id, $db, $cardTypes) {
             ]);
             admin_log('customer_saved', '#' . $id . ' ' . $email);
             flash('Saved.');
+            break;
+        case 'make_free':
+        case 'make_paid':
+            $cp = (int) $_POST['cp'];
+            $own = $db->prepare('SELECT package_id FROM clients_package WHERE id = :cp AND users_id = :u');
+            $own->execute(['cp' => $cp, 'u' => $id]);
+            $pk = $own->fetchColumn();
+            if ($pk === false) {
+                throw new RuntimeException('Account not found.');
+            }
+            if ($action === 'make_free') {
+                // Only a "paid at the desk" mark can be undone here; online payments stay paid.
+                $online = $db->prepare("SELECT COUNT(*) FROM sale_receits WHERE client_package_id = :cp AND status = 1 AND (token IS NULL OR token NOT LIKE 'desk-%')");
+                $online->execute(['cp' => $cp]);
+                if ((int) $online->fetchColumn() > 0) {
+                    throw new RuntimeException('This account was paid online, so it stays "Paid". For a refund, see Orders.');
+                }
+                $db->prepare("DELETE FROM sale_receits WHERE client_package_id = :cp AND token LIKE 'desk-%'")->execute(['cp' => $cp]);
+                admin_log('account_made_free', 'account #' . $cp . ' of customer #' . $id);
+                flash('Changed to a free account.');
+            } else {
+                $db->prepare("INSERT INTO sale_receits (email, user_id, package, dia_orario, status, currency, email_status, token, client_package_id)
+                              VALUES (:e, :u, :p, NOW(), 1, 'XCG', 0, :t, :cp)")
+                    ->execute(['e' => (string) $c['email'], 'u' => $id, 'p' => (int) $pk, 't' => 'desk-' . bin2hex(random_bytes(8)), 'cp' => $cp]);
+                admin_log('account_made_paid', 'account #' . $cp . ' of customer #' . $id . ' (paid at the desk)');
+                flash('Changed to paid (at the desk).');
+            }
             break;
         case 'card_date':
             $d = (string) $_POST['expire'];
@@ -181,6 +211,11 @@ if ($id) {
           <span class="ad-muted">valid until</span>
           <input type="date" class="ad-in" style="width:170px" name="expire" value="<?= e($k['expire']) ?>">
           <button class="btn btn-sm btn-outline" name="action" value="card_date">Change end date</button>
+          <?php if ((int) $k['paid']): ?>
+            <button class="btn btn-sm btn-outline" name="action" value="make_free" onclick="return confirm('Change this account to a free account?')">Make it free</button>
+          <?php else: ?>
+            <button class="btn btn-sm btn-outline" name="action" value="make_paid" onclick="return confirm('Mark this account as paid at the desk?')">Mark as paid</button>
+          <?php endif; ?>
         </form>
       <?php endforeach; ?>
       <details style="margin-top:14px">
@@ -278,9 +313,9 @@ admin_head('Customers', 'customers');
   <form method="post" class="ad-form" style="margin-top:12px"><?= csrf_field() ?>
     <p class="full ad-muted" style="margin:0">For someone who paid at the desk (cash, card or bank transfer) or who gets it free (influencer, artist, prize). If the email is already a customer, the account is added to them. Afterwards you get a password link to send them, so they can log in to the app.</p>
     <div class="full"><label>How</label>
-      <label class="check"><input type="radio" name="how" value="paid" checked onchange="this.form.querySelector('.paidbox').hidden=false"> <span>Paid at the desk</span></label>
-      <label class="check"><input type="radio" name="how" value="free" onchange="this.form.querySelector('.paidbox').hidden=true"> <span>Free (shows as "Free account")</span></label></div>
-    <div class="full paidbox"><label>Paid how (for the log)</label><input type="text" name="paidhow" placeholder="e.g. cash XCG 135, bank transfer"> 
+      <label class="check"><input type="radio" name="how" value="free" required onchange="this.form.querySelector('.paidbox').hidden=true"> <span>Free (influencer, artist, prize, team)</span></label>
+      <label class="check"><input type="radio" name="how" value="paid" required onchange="this.form.querySelector('.paidbox').hidden=false"> <span>Paid at the desk (cash, card, bank transfer)</span></label></div>
+    <div class="full paidbox" hidden><label>Paid how (for the log)</label><input type="text" name="paidhow" placeholder="e.g. cash XCG 135, bank transfer"> 
       <label style="margin-top:8px">Currency</label><select name="currency"><option>XCG</option><option>EUR</option></select></div>
     <div><label>First name</label><input type="text" name="first" required></div>
     <div><label>Last name</label><input type="text" name="last"></div>
