@@ -108,7 +108,7 @@ admin_head('App home', 'app-home');
 <form method="post" enctype="multipart/form-data" class="ad-box ad-form"><?= csrf_field() ?>
   <input type="hidden" name="country" value="<?= $country ?>">
   <h2 class="full" style="margin-top:0">Big picture at the top</h2>
-  <?php if ($hero['n']): ?><div class="full"><img src="/admin/banner.php?k=hero&amp;id=<?= (int) $hero['id'] ?>&amp;t=<?= time() ?>" alt="" style="max-width:420px;width:100%;border-radius:12px"></div><?php endif; ?>
+  <?php if ($hero['n']): ?><div class="full"><img src="/admin/banner.php?k=hero&amp;id=<?= (int) $hero['id'] ?>&amp;t=<?= time() ?>" alt="" style="max-height:200px;max-width:100%;border-radius:12px"></div><?php endif; ?>
   <div><label>Big text</label><input type="text" name="header_big_text" value="<?= e($hero['header_big_text']) ?>"></div>
   <div><label>Small text</label><input type="text" name="header_text" value="<?= e($hero['header_text']) ?>"></div>
   <div><label>Button text</label><input type="text" name="button_text" value="<?= e($hero['button_text']) ?>"></div>
@@ -133,13 +133,23 @@ admin_head('App home', 'app-home');
     </form>
   <?php endforeach; ?>
   <?php if (!$ads): ?><p class="ad-muted">No banners yet.</p><?php endif; ?>
-  <details style="margin-top:14px"><summary class="btn btn-sm">+ Add a banner</summary>
-    <form method="post" enctype="multipart/form-data" class="ad-form" style="margin-top:12px"><?= csrf_field() ?>
-      <input type="hidden" name="country" value="<?= $country ?>">
-      <div><label>Picture</label><input type="file" name="image" accept="image/jpeg,image/png,image/webp" required></div>
-      <?= $linkFields('company', '', 'link') ?>
-      <div class="full"><button class="btn btn-sm" name="action" value="ad_add">Add banner</button></div>
-    </form>
-  </details>
+  <form method="post" enctype="multipart/form-data" class="ad-form" style="margin-top:16px;padding:14px;border:2px dashed #cfe0c9;border-radius:14px"><?= csrf_field() ?>
+    <input type="hidden" name="country" value="<?= $country ?>">
+    <h3 class="full" style="margin:0">Add a banner</h3>
+    <div class="full"><label>Picture (best size: 1600 × 800 pixels, wide like 2:1)</label><input type="file" name="image" accept="image/jpeg,image/png,image/webp" required></div>
+    <?= $linkFields('url', '', 'link') ?>
+    <div class="full"><button class="btn" name="action" value="ad_add">Save banner</button></div>
+  </form>
 </div>
+<script>
+// Uploading a picture can take a few seconds: show it, and stop double clicks
+document.querySelectorAll('form[enctype="multipart/form-data"]').forEach(function (f) {
+  f.addEventListener('submit', function (ev) {
+    var b = ev.submitter || f.querySelector('button[name=action]');
+    if (!b) return;
+    var h = document.createElement('input'); h.type = 'hidden'; h.name = b.name; h.value = b.value; f.appendChild(h);
+    setTimeout(function () { b.disabled = true; b.textContent = 'Uploading… one moment'; }, 0);
+  });
+});
+</script>
 <?php admin_foot();
