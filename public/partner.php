@@ -77,7 +77,7 @@ page_header($p['name'] . " · Dj'aki mi ta!", 'partners', mb_substr(strip_tags((
                     <td colspan="2" class="muted"><?= e(t('deals.see')) ?></td>
                   <?php else: ?>
                     <td><strong><?= $pc >= 100 ? e(t('deals.free')) : e(t('deals.off', ['p' => $pc])) ?></strong></td>
-                    <td class="muted small"><?php if ($was > 0): ?><?= e(t('partner.was')) ?> <s><?= e(number_format($was, 2)) ?></s><?php endif; ?></td>
+                    <td class="muted small"><?php if ($was > 0): ?><?= e(t('partner.was')) ?> <s>$<?= e(number_format($was, 2)) ?></s><?php endif; ?></td>
                   <?php endif; ?>
                 </tr>
               <?php endforeach; ?>

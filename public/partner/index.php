@@ -92,7 +92,7 @@ pp_head('Check an account', $u, 'scan');
         elseif ($d && (float) $d['the_percent'] > 0) { echo (int) round((float) $d['the_percent']) . '% off'; }
         elseif ($a['deal_text'] !== '') { echo e($a['deal_text']); }
         else { echo '–'; }
-      ?></b><span>Discount<?= $d && (float) $d['was'] > 0 ? ' (normal ' . e(number_format((float) $d['was'], 2)) . ', now ' . e(number_format((float) $d['after'], 2)) . ')' : '' ?></span></div>
+      ?></b><span>Discount<?= $d && (float) $d['was'] > 0 ? ' (normal $' . e(number_format((float) $d['was'], 2)) . ', now $' . e(number_format((float) $d['after'], 2)) . ')' : '' ?></span></div>
     </div>
     <?php if ($a['deal_text'] !== '' && $d && (float) $d['the_percent'] > 0): ?><p style="margin:0 0 10px"><b>Also:</b> <?= e($a['deal_text']) ?></p><?php endif; ?>
     <?php if ($a['holders']): ?>

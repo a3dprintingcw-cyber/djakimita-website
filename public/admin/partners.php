@@ -323,7 +323,7 @@ if ($id) {
       <h2 style="margin-top:0">Discount per account</h2>
       <p class="ad-muted">Fill in the normal price and the price with the account, or just the % off. Leave an account empty if it gets no discount. 100% means free.</p>
       <div class="ad-wrap"><table class="ad-table" style="max-width:640px">
-        <thead><tr><th>Account</th><th>Normal price</th><th>With account</th><th>% off</th></tr></thead>
+        <thead><tr><th>Account</th><th>Normal price ($)</th><th>With account ($)</th><th>% off</th></tr></thead>
         <tbody><?php foreach ($cardTypes as $pkg => $label): $dl = $deals[$pkg] ?? null; ?>
           <tr><td><strong><?= e($label) ?></strong></td>
             <td><input class="ad-in" name="was[<?= $pkg ?>]" inputmode="decimal" value="<?= e($num($dl['was'] ?? null)) ?>"></td>
