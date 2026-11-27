@@ -19,7 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         db()->prepare('UPDATE users SET password = :p WHERE id = :id')->execute(['p' => password_hash($new, PASSWORD_BCRYPT), 'id' => (int) $u['id']]);
         session_regenerate_id(true);
-        pp_flash('Your password is changed. Use it next time you log in.');
+        pp_remember((int) $u['id']); // this phone stays logged in, other phones are logged out
+        pp_flash('Your password is changed. Other phones that were logged in are logged out.');
         header('Location: /partner/password.php');
         exit;
     }

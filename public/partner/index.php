@@ -32,9 +32,19 @@ $stats = pp_stats($cid);
 
 pp_head('Check an account', $u, 'scan');
 ?>
+<div class="pp-box" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+  <img src="/partner/qr.php" alt="Your QR code" width="96" height="96" style="border-radius:10px;border:1px solid #e3e9df">
+  <div style="flex:1 1 220px">
+    <h2 style="margin:0 0 4px">Customers scan your QR code</h2>
+    <p class="pp-muted" style="margin:0 0 8px">Put this code at your counter. When a customer scans it in the Dj'aki mi ta! app, they pop up on this page within a few seconds, with photo, account and discount. Keep this page open.</p>
+    <a class="btn btn-sm" href="/partner/qr.php?poster=1" target="_blank" rel="noopener">Print poster</a>
+    <a class="btn btn-sm btn-outline" href="/partner/qr.php?download=1">Download QR code</a>
+  </div>
+</div>
+
 <div class="pp-box">
   <h2>Check an account</h2>
-  <p class="pp-muted" style="margin:0 0 10px">Scan the QR code or barcode in the customer's app, or type the account number.</p>
+  <p class="pp-muted" style="margin:0 0 10px">Or check a customer yourself: scan the QR code or barcode in their app, or type the account number.</p>
   <form method="get" class="pp-scan" id="pp-f">
     <input type="text" name="acc" id="pp-acc" inputmode="numeric" autocomplete="off" onfocus="this.select()" placeholder="Account number" value="<?= e($raw !== '' && empty($_GET['done']) ? $raw : '') ?>" autofocus>
     <button class="btn">Check</button>

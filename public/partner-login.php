@@ -6,6 +6,7 @@ if (pp_user()) {
     header('Location: /partner/');
     exit;
 }
+$fromScan = !empty($_SESSION['pp_next']) && str_contains((string) $_SESSION['pp_next'], 'acc=');
 $err = '';
 $name = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -15,7 +16,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $r = pp_login($name, (string) ($_POST['password'] ?? ''));
         if (is_int($r)) {
-            header('Location: /partner/');
+            $next = (string) ($_SESSION['pp_next'] ?? '');
+            unset($_SESSION['pp_next']);
+            header('Location: ' . (preg_match('~^/partner/[A-Za-z0-9_./?=&%-]*$~', $next) ? $next : '/partner/'));
             exit;
         }
         $err = $r;
@@ -26,6 +29,7 @@ pp_head('Log in', null);
 <div class="pp-box" style="max-width:440px;margin:40px auto">
   <h1 style="font-size:1.6rem;margin:0 0 4px">Partner login</h1>
   <p class="pp-muted" style="margin:0 0 14px">For businesses that work with Dj'aki mi ta!. Use the username and password you got from the team.</p>
+  <?php if ($fromScan && !$err): ?><div class="pp-flash">You scanned a customer's code. Log in once, and the account opens right away. Next time it opens directly.</div><?php endif; ?>
   <?php if ($err): ?><div class="pp-err" role="alert"><?= e($err) ?></div><?php endif; ?>
   <form method="post" class="pp-form" autocomplete="on">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
