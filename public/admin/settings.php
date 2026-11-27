@@ -21,6 +21,30 @@ admin_post(function () use ($db, $me) {
             admin_log('notify_settings', implode(', ', $list));
             flash('Saved.');
             break;
+        case 'brevo_key':
+            $k = trim((string) ($_POST['brevo_key'] ?? ''));
+            if (str_starts_with($k, 'xsmtpsib-')) {
+                throw new RuntimeException('That is an SMTP key. In Brevo go to SMTP & API → API keys and make an API key (it starts with xkeysib-).');
+            }
+            if (!preg_match('/^xkeysib-[A-Za-z0-9-]{20,}$/', $k)) {
+                throw new RuntimeException('That does not look like a Brevo API key. It starts with xkeysib-.');
+            }
+            set_setting('brevo_api_key', $k);
+            admin_log('brevo_key_saved', 'ending ' . substr($k, -4));
+            flash('Brevo key saved. Send a test email below to check it works.');
+            break;
+        case 'brevo_test':
+            $to = trim((string) ($_POST['test_to'] ?? ''));
+            if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+                throw new RuntimeException('Fill in a valid email address for the test.');
+            }
+            $ok = brevo_send($to, "Dj'aki mi ta!: test email", '<p>Bon dia! This test email from the Dj&#39;aki mi ta! backend arrived, so emails work.</p>');
+            admin_log('brevo_test', $to . ' ' . ($ok ? 'ok' : 'failed'));
+            if (!$ok) {
+                throw new RuntimeException('The test email was not sent. Brevo says: ' . ($GLOBALS['brevo_last_error'] ?? 'no key') . '. If it is about the sender, add and verify ' . config('mail_from') . ' in Brevo under Senders, domains and dedicated IPs.');
+            }
+            flash('Test email sent to ' . $to . '. Check the inbox (and spam).');
+            break;
         case 'phones':
             set_setting('phones_single', (string) max(1, min(10, (int) $_POST['phones_single'])));
             set_setting('phones_family', (string) max(1, min(10, (int) $_POST['phones_family'])));
@@ -200,6 +224,19 @@ admin_head('Settings', 'settings');
   <?php else: ?>
     <div class="full ad-actions"><button class="btn btn-sm" name="action" value="preview_link">Make a preview link</button></div>
   <?php endif; ?>
+</form>
+
+<?php $bk = brevo_key(); ?>
+<form method="post" class="ad-box ad-form" autocomplete="off"><?= csrf_field() ?>
+  <h2 class="full" style="margin-top:0">Emails (Brevo)</h2>
+  <p class="full ad-muted">All emails (orders, password links, birthdays, reminders) go through Brevo. Status: <?= $bk !== '' ? '<strong style="color:#1c5a1d">key saved, ending in ' . e(substr($bk, -4)) . '</strong>' : '<strong style="color:#8a2216">no key, emails are not sent</strong>' ?>. Emails are sent from <?= e((string) config('mail_from')) ?>; that address must be verified in Brevo.</p>
+  <div class="full"><label>Brevo API key (Brevo → SMTP &amp; API → API keys, starts with xkeysib-)</label><input type="password" name="brevo_key" placeholder="Paste the new key here" autocomplete="new-password"></div>
+  <div class="full ad-actions"><button class="btn btn-sm" name="action" value="brevo_key">Save key</button></div>
+</form>
+<form method="post" class="ad-box ad-form"><?= csrf_field() ?>
+  <h2 class="full" style="margin-top:0">Send a test email</h2>
+  <div class="full"><label>To</label><input type="email" name="test_to" value="<?= e(explode(',', (string) setting('notify_email', ''))[0]) ?>"></div>
+  <div class="full ad-actions"><button class="btn btn-sm btn-outline" name="action" value="brevo_test">Send test email</button></div>
 </form>
 
 <form method="post" class="ad-box ad-form"><?= csrf_field() ?>

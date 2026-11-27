@@ -507,9 +507,16 @@ function activate_order(string $intentId): int
 // ---------------------------------------------------------------------------
 // Email (Brevo)
 // ---------------------------------------------------------------------------
+/** The Brevo key: pasted in the backend (Settings → Emails), else from config.local.php. */
+function brevo_key(): string
+{
+    $k = function_exists('setting') ? trim((string) setting('brevo_api_key', '')) : '';
+    return $k !== '' ? $k : (string) config('brevo_api_key');
+}
+
 function brevo_send(string $to, string $subject, string $html, ?array $replyTo = null): bool
 {
-    $key = (string) config('brevo_api_key');
+    $key = brevo_key();
     if ($key === '') {
         error_log('Email not sent (no Brevo key): ' . $subject);
         return false;
@@ -528,13 +535,15 @@ function brevo_send(string $to, string $subject, string $html, ?array $replyTo =
             'htmlContent' => $html,
         ])),
     ]);
-    curl_exec($ch);
+    $body = (string) curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     if ($code >= 300) {
-        error_log('Brevo error ' . $code . ' for ' . $subject);
+        $msg = (string) (json_decode($body, true)['message'] ?? ('HTTP ' . $code));
+        error_log('Brevo error ' . $code . ' for ' . $subject . ': ' . $msg);
+        $GLOBALS['brevo_last_error'] = $msg;
     }
-    return $code < 300;
+    return $code >= 200 && $code < 300;
 }
 
 function send_order_email(array $rows): void
