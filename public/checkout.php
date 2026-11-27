@@ -40,7 +40,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $form['terms'] = !empty($_POST['terms']);
     $form['code'] = strtoupper(mb_substr(trim((string) ($_POST['code'] ?? '')), 0, 40));
     $discount = null;
-    if ($form['code'] !== '' && $form['card'] !== '') {
+    $inviter = 0;
+    require_once __DIR__ . '/../app/points.php';
+    if ($form['code'] !== '' && $form['card'] !== '' && pts_on(db())) {
+        $inviter = invite_client(db(), $form['code']);
+    }
+    if ($form['code'] !== '' && $form['card'] !== '' && !$inviter) {
         $discount = discount_find($form['code']);
         if (!$discount) {
             $errors[] = t('co.code.bad');
@@ -122,6 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'phone' => $form['phone'],
                 'currency' => $form['currency'],
                 'discount' => $discount,
+                'inviter' => $inviter,
             ]);
             header('Location: /pay.php?' . http_build_query(['o' => $orderId, 's' => order_sig($orderId)]));
             exit;
@@ -342,13 +348,14 @@ page_header(t('co.title') . " · Dj'aki mi ta!");
     document.getElementById('sum-total').textContent = fmt(total, cur);
   }
   var codeIn = document.getElementById('code'), codeMsg = document.getElementById('code-msg');
+  var invOk = <?= json_encode(t('co.code.invite'), JSON_HEX_TAG) ?>;
   var codeLine = <?= json_encode(t('co.code.line'), JSON_HEX_TAG) ?>, codeOk = <?= json_encode(t('co.code.ok'), JSON_HEX_TAG) ?>, codeBad = <?= json_encode(t('co.code.bad'), JSON_HEX_TAG) ?>;
   function applyCode() {
     var v = codeIn.value.trim();
     if (!v) { codeIn.dataset.pct = 0; codeMsg.textContent = ''; update(); return; }
     fetch('/discount.php?code=' + encodeURIComponent(v), {headers: {Accept: 'application/json'}}).then(function (r) { return r.json(); }).then(function (d) {
       codeIn.dataset.pct = d.ok ? d.percent : 0;
-      codeMsg.textContent = d.ok ? codeOk.replace('{p}', d.percent) : codeBad;
+      codeMsg.textContent = d.ok ? (d.invite ? invOk.replace('{name}', d.name).replace('{n}', d.points) : codeOk.replace('{p}', d.percent)) : codeBad;
       codeMsg.className = 'small ' + (d.ok ? 'code-ok' : 'code-bad');
       update();
     }).catch(function () {});

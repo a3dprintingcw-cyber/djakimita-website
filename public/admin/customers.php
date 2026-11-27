@@ -211,6 +211,17 @@ admin_post(function () use ($id, $db, $cardTypes) {
             admin_log('phones_logged_out', '#' . $id);
             flash('All phones are logged out and forgotten. The next phone the customer logs in on is free, it does not count as a phone change.');
             break;
+        case 'points_adjust':
+            require_once __DIR__ . '/../../app/points.php';
+            $n = (int) ($_POST['points'] ?? 0);
+            $why = mb_substr(trim((string) ($_POST['why'] ?? '')), 0, 120);
+            if ($n === 0 || $why === '') {
+                throw new RuntimeException('Fill in the points (use a minus for taking points away) and the reason.');
+            }
+            pts_add($db, $id, $n, 'adjust', 'a' . bin2hex(random_bytes(8)), $why);
+            admin_log('points_adjusted', '#' . $id . ' ' . ($n > 0 ? '+' : '') . $n . ' · ' . $why);
+            flash(($n > 0 ? 'Added ' : 'Took away ') . abs($n) . ' points.');
+            break;
         case 'phones_give':
             require_once __DIR__ . '/../../app/devices.php';
             $ok = dev_give_change($db, $id);
@@ -366,6 +377,14 @@ if ($id) {
             <p class="ad-muted" style="margin:6px 0 0">Only shown once. The customer opens it, chooses a password, and can then log in on the website and in the app.</p></div>
         <?php endif; ?>
         <?php require_once __DIR__ . '/../../app/devices.php'; $phones = []; $plim = 1; $chg = []; $callow = 2; try { $phones = dev_list($db, $id); $plim = dev_limit($db, $id); $chg = dev_changes($db, $id); $callow = dev_changes_allowed($db); } catch (Throwable $e) {} ?>
+        <?php require_once __DIR__ . '/../../app/points.php'; $pbal = 0; $phist = []; try { pts_sync($db, $id); $pbal = pts_balance($db, $id); $phist = pts_history($db, $id, 8); } catch (Throwable $e) {} ?>
+        <h2>Points</h2>
+        <p><strong><?= number_format($pbal, 0, ',', '.') ?> points</strong> <span class="ad-muted">· invite code <?= e(invite_code($id)) ?></span></p>
+        <?php if ($phist): ?><table class="ad-table"><?php foreach ($phist as $h): ?><tr><td><?= e(date('d-m-Y', strtotime($h['created_at']))) ?></td><td><?= e($h['label']) ?><?= (int) $h['is_pending'] ? ' <span class="ad-muted">(from ' . e(date('d-m-Y', strtotime($h['available_at']))) . ')</span>' : '' ?></td><td style="text-align:right"><?= (int) $h['points'] > 0 ? '+' : '' ?><?= (int) $h['points'] ?></td></tr><?php endforeach; ?></table><?php endif; ?>
+        <form method="post" class="ad-actions" style="margin:8px 0 4px"><?= csrf_field() ?>
+          <input type="number" name="points" placeholder="+50 or -50" style="max-width:120px">
+          <input type="text" name="why" placeholder="Reason, e.g. sorry for the trouble" maxlength="120" style="flex:1;min-width:160px">
+          <button class="btn btn-sm btn-outline" name="action" value="points_adjust">Add or take away</button></form>
         <h2>Phones</h2>
         <p class="ad-muted">This account may be used on <?= $plim ?> phone<?= $plim > 1 ? 's' : '' ?>. Moving it to a new phone is allowed <?= $callow ?> times per 12 months; the old phone is then logged out and can no longer scan. Logging out and in again on the same phone is free.</p>
         <p><strong>Phone changes used in the last 12 months: <?= count($chg) ?> of <?= $callow ?></strong><?php if ($chg): ?> <span class="ad-muted">(<?= e(implode(', ', array_map(fn($d) => date('d-m-Y', strtotime($d)), $chg))) ?>)</span><?php endif; ?></p>

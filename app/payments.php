@@ -378,6 +378,11 @@ function create_order(array $in): int
             ->execute(['s' => $mainId, 'c' => $discount['id'], 'code' => $discount['code'], 'p' => $discount['percent'], 'a' => $discount['amount']]);
     }
 
+    // Invite a friend: remember whose invite code was used (points come after paying, see app/points.php)
+    if ($in['card'] !== '' && !empty($in['inviter'])) {
+        $pdo->prepare('INSERT IGNORE INTO sale_invites (sale_id, inviter_id) VALUES (:s, :i)')->execute(['s' => $mainId, 'i' => (int) $in['inviter']]);
+    }
+
     // Card holders: name + birthdate (the shop checks these against an ID). No passport numbers.
     if ($in['card'] !== '') {
         $h = $pdo->prepare('INSERT INTO client_package_customers (name, client_id, client_birthdate, order_id) VALUES (:n, "", :b, :o)');

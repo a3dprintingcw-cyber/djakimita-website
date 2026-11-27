@@ -216,6 +216,7 @@ const ADMIN_MENU = [
     'categories' => ['Categories', 'grid'],
     'prices' => ['Prices', 'tag'],
     'discounts' => ['Discount & creator codes', 'tag'],
+    'points' => ['Points & rewards', 'gift'],
     'app-home' => ['App home screen', 'phone'],
     'wheel' => ['Spin the wheel', 'gift'],
     'visits' => ['Visit checklist', 'pin'],

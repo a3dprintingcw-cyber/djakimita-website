@@ -1,5 +1,7 @@
 <?php
 // Small helper for the app endpoints in this folder (no website bootstrap, no countdown).
+date_default_timezone_set('America/Curacao');
+
 function api_db(): PDO
 {
     static $db = null;

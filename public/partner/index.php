@@ -21,6 +21,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'visit
     exit;
 }
 
+// Reward codes (points): the customer shows a code from the app, the partner marks it as given
+require_once __DIR__ . '/../../app/points.php';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'reward') {
+    $rc = (string) ($_POST['rcode'] ?? '');
+    $c = pts_claim_by_code(db(), $rc);
+    if (!csrf_check()) {
+        pp_flash('The page was open too long. Check the code again.');
+    } elseif ($c && (int) $c['partner_id'] === $cid && pts_claim_state($c) === 'open') {
+        db()->prepare('UPDATE reward_claims SET used_at = NOW(), used_where = :w WHERE id = :i AND used_at IS NULL')
+            ->execute(['w' => mb_substr(trim((string) ($u['company'] ?? '') . ' (' . ($u['name'] ?? '') . ')'), 0, 120), 'i' => $c['id']]);
+        pp_flash('Done: give "' . $c['title'] . '" to ' . $c['first'] . '.');
+    } else {
+        pp_flash('This code can not be used here.');
+    }
+    header('Location: /partner/?rcode=' . urlencode((string) ($c['code'] ?? '')) . '&rdone=1');
+    exit;
+}
+$rcode = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string) ($_GET['rcode'] ?? '')));
+$claim = $rcode !== '' ? pts_claim_by_code(db(), $rcode) : null;
+if ($claim && (int) $claim['partner_id'] !== $cid) {
+    $claim = null; // codes of other partners are not shown
+}
+
 $raw = trim((string) ($_GET['acc'] ?? ''));
 $acc = pp_account_id($raw);
 $a = $raw !== '' ? pp_lookup($acc, $cid) : null;
@@ -92,6 +115,34 @@ pp_head('Check an account', $u, 'scan');
     <?php endif; ?>
   </div>
 <?php endif; ?>
+
+<div class="pp-box" id="reward">
+  <h2 style="margin-top:0">Reward code</h2>
+  <p class="pp-muted" style="margin-top:0">Customers can swap their points for your reward in the app. They show you a code of 8 letters. Check it here and mark it as given.</p>
+  <form method="get" action="/partner/#reward" style="display:flex;gap:8px;flex-wrap:wrap">
+    <input type="text" name="rcode" value="<?= e($rcode) ?>" placeholder="e.g. K7MX2QPA" maxlength="12" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase;flex:1;min-width:160px;font-size:1.1rem;padding:10px 12px;border:1px solid #cfd9ca;border-radius:10px">
+    <button class="btn">Check code</button>
+  </form>
+  <?php if ($rcode !== ''): ?>
+    <?php if (!$claim): ?>
+      <p style="color:#8a2216;font-weight:600;margin-bottom:0">This code is not valid at your place.</p>
+    <?php else: $st = pts_claim_state($claim); ?>
+      <div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:<?= $st === 'open' ? '#eaf5e6' : '#fbeceb' ?>">
+        <strong style="font-size:1.15rem"><?= e($claim['title']) ?></strong><br>
+        <span><?= e(trim($claim['first'] . ' ' . mb_substr((string) $claim['last'], 0, 1) . '.')) ?> · code <?= e($claim['code']) ?></span><br>
+        <?php if ($st === 'open'): ?>
+          <span>✓ Valid until <?= e(date('d-m-Y', strtotime($claim['expires_at']))) ?></span>
+          <form method="post" style="margin-top:10px"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="rcode" value="<?= e($claim['code']) ?>">
+            <button class="btn btn-lg" name="action" value="reward" style="width:100%">Mark as given</button></form>
+        <?php elseif ($st === 'used'): ?>
+          <strong style="color:#8a2216">Already given on <?= e(date('d-m-Y H:i', strtotime((string) $claim['used_at']))) ?>. Do not give it again.</strong>
+        <?php else: ?>
+          <strong style="color:#8a2216">This code is no longer valid.</strong>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
+  <?php endif; ?>
+</div>
 
 <div class="pp-stats">
   <div><b><?= $stats['today'] ?></b><span>Visits today</span></div>
