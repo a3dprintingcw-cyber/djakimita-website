@@ -1,6 +1,7 @@
 <?php
 // The app's "one account, one phone" endpoint. POST JSON:
-//   {action:"register", username, password, label}  -> {status:"success", client_id, token, limit, logged_out}
+//   {action:"register", username, password, label, uid} -> {status:"success", client_id, token, limit, logged_out, changes_left}
+//                                                       or {status:"nochange", allowed, next} (no phone changes left)
 //   {action:"check", client_id, token}              -> {status:"ok"} or {status:"out", limit}
 //   {action:"logout", client_id, token}             -> {status:"ok"}
 require __DIR__ . '/_db.php';
@@ -30,9 +31,14 @@ try {
             $db->prepare('INSERT INTO login_attempts (k, created_at) VALUES (:k, NOW())')->execute(['k' => $ipKey]);
             api_json(['status' => 'fail'], 401);
         }
-        [$token, $out] = dev_register($db, (int) $c['id'], (string) ($in['label'] ?? ''));
-        api_json(['status' => 'success', 'client_id' => (int) $c['id'], 'token' => $token,
-                  'limit' => dev_limit($db, (int) $c['id']), 'logged_out' => $out]);
+        $cid = (int) $c['id'];
+        $r = dev_register($db, $cid, (string) ($in['label'] ?? ''), (string) ($in['uid'] ?? ''));
+        if (!$r['ok']) {
+            api_json(['status' => 'nochange', 'allowed' => dev_changes_allowed($db), 'next' => $r['next'], 'limit' => dev_limit($db, $cid)]);
+        }
+        $allowed = dev_changes_allowed($db);
+        api_json(['status' => 'success', 'client_id' => $cid, 'token' => $r['token'], 'limit' => dev_limit($db, $cid),
+                  'logged_out' => $r['changed'] ? 1 : 0, 'changes_left' => max(0, $allowed - count(dev_changes($db, $cid)))]);
     }
     $cid = (int) ($in['client_id'] ?? 0);
     $tok = (string) ($in['token'] ?? '');

@@ -209,7 +209,13 @@ admin_post(function () use ($id, $db, $cardTypes) {
             require_once __DIR__ . '/../../app/devices.php';
             dev_clear($db, $id);
             admin_log('phones_logged_out', '#' . $id);
-            flash('All phones are logged out of this account. The customer logs in again on their own phone.');
+            flash('All phones are logged out and forgotten. The next phone the customer logs in on is free, it does not count as a phone change.');
+            break;
+        case 'phones_give':
+            require_once __DIR__ . '/../../app/devices.php';
+            $ok = dev_give_change($db, $id);
+            admin_log('phone_change_given', '#' . $id);
+            flash($ok ? 'One phone change given back.' : 'This customer has not used any phone changes in the last 12 months.');
             break;
         case 'reset_link':
             $token = create_password_token($id, 24);
@@ -359,13 +365,15 @@ if ($id) {
             <button type="button" class="btn btn-sm" style="margin-top:6px" onclick="navigator.clipboard.writeText(this.previousElementSibling.value).then(()=>this.textContent='Copied')">Copy link</button>
             <p class="ad-muted" style="margin:6px 0 0">Only shown once. The customer opens it, chooses a password, and can then log in on the website and in the app.</p></div>
         <?php endif; ?>
-        <?php require_once __DIR__ . '/../../app/devices.php'; $phones = []; $plim = 1; try { $phones = dev_list($db, $id); $plim = dev_limit($db, $id); } catch (Throwable $e) {} ?>
+        <?php require_once __DIR__ . '/../../app/devices.php'; $phones = []; $plim = 1; $chg = []; $callow = 2; try { $phones = dev_list($db, $id); $plim = dev_limit($db, $id); $chg = dev_changes($db, $id); $callow = dev_changes_allowed($db); } catch (Throwable $e) {} ?>
         <h2>Phones</h2>
-        <p class="ad-muted">This account may be used on <?= $plim ?> phone<?= $plim > 1 ? 's' : '' ?> at a time. When it logs in on another phone, the phone that was used the longest ago is logged out, and that phone can no longer scan.</p>
+        <p class="ad-muted">This account may be used on <?= $plim ?> phone<?= $plim > 1 ? 's' : '' ?>. Moving it to a new phone is allowed <?= $callow ?> times per 12 months; the old phone is then logged out and can no longer scan. Logging out and in again on the same phone is free.</p>
+        <p><strong>Phone changes used in the last 12 months: <?= count($chg) ?> of <?= $callow ?></strong><?php if ($chg): ?> <span class="ad-muted">(<?= e(implode(', ', array_map(fn($d) => date('d-m-Y', strtotime($d)), $chg))) ?>)</span><?php endif; ?></p>
+        <?php if ($chg): ?><form method="post" class="ad-actions" style="margin-bottom:8px"><?= csrf_field() ?><button class="btn btn-sm btn-outline" name="action" value="phones_give">Give back one phone change</button></form><?php endif; ?>
         <?php if ($phones): ?>
           <table class="ad-table"><tr><th>Phone</th><th>Logged in</th><th>Last used</th></tr>
-          <?php foreach ($phones as $ph): ?><tr><td><?= e($ph['label']) ?></td><td><?= e(date('d-m-Y H:i', strtotime($ph['created_at']))) ?></td><td><?= e(date('d-m-Y H:i', strtotime($ph['last_seen']))) ?></td></tr><?php endforeach; ?></table>
-          <form method="post" class="ad-actions" style="margin-top:8px"><?= csrf_field() ?><button class="btn btn-sm btn-outline" name="action" value="phones_clear" onclick="return confirm('Log out all phones of this account?')">Log out all phones</button></form>
+          <?php foreach ($phones as $ph): ?><tr><td><?= e($ph['label']) ?><?= (int) $ph['active'] ? '' : ' <span class="ad-muted">(logged out)</span>' ?></td><td><?= e(date('d-m-Y H:i', strtotime($ph['created_at']))) ?></td><td><?= e(date('d-m-Y H:i', strtotime($ph['last_seen']))) ?></td></tr><?php endforeach; ?></table>
+          <form method="post" class="ad-actions" style="margin-top:8px"><?= csrf_field() ?><button class="btn btn-sm btn-outline" name="action" value="phones_clear" onclick="return confirm('Log out and forget all phones of this account? Use this for a lost or broken phone. The next phone is free.')">Log out all phones (lost phone)</button></form>
         <?php else: ?><p class="ad-muted">Not logged in on a phone with the new app yet.</p><?php endif; ?>
         <?php if ($esims): ?>
           <h2>eSIM</h2>

@@ -24,6 +24,7 @@ admin_post(function () use ($db, $me) {
         case 'phones':
             set_setting('phones_single', (string) max(1, min(10, (int) $_POST['phones_single'])));
             set_setting('phones_family', (string) max(1, min(10, (int) $_POST['phones_family'])));
+            set_setting('phone_changes_year', (string) max(0, min(50, (int) $_POST['phone_changes_year'])));
             set_setting('phones_require_all', empty($_POST['phones_require_all']) ? '0' : '1');
             admin_log('phones_settings');
             flash('Saved.');
@@ -203,9 +204,10 @@ admin_head('Settings', 'settings');
 
 <form method="post" class="ad-box ad-form"><?= csrf_field() ?>
   <h2 class="full" style="margin-top:0">Account sharing</h2>
-  <p class="full ad-muted">How many phones may use one account at the same time. When someone logs in on one phone too many, the phone used the longest ago is logged out and can no longer scan. You can see and log out the phones of a customer on their page under Customers.</p>
+  <p class="full ad-muted">How many phones may use one account, and how often a customer may move their account to a new phone. When they log in on a new phone, the old phone is logged out and can no longer scan. After the changes per 12 months are used up, a new phone is refused until the date shown to the customer. Logging out and in again on the same phone is always free. You can see and log out the phones of a customer on their page under Customers.</p>
   <label>Phones per account (Kids, Teen, Adult, Senior)<input type="number" name="phones_single" min="1" max="10" value="<?= e((string) setting('phones_single', '1')) ?>"></label>
   <label>Phones per Family account<input type="number" name="phones_family" min="1" max="10" value="<?= e((string) setting('phones_family', '2')) ?>"></label>
+  <label>Changes to a new phone per 12 months<input type="number" name="phone_changes_year" min="0" max="50" value="<?= e((string) setting('phone_changes_year', '2')) ?>"></label>
   <label class="check full"><input type="checkbox" name="phones_require_all" value="1"<?= setting('phones_require_all', '0') === '1' ? ' checked' : '' ?>> <span>Also refuse scans from the old app in the App Store and Play Store. Switch this on once the app update is in the stores, otherwise old app users can't scan.</span></label>
   <div class="full ad-actions"><button class="btn btn-sm" name="action" value="phones">Save</button></div>
 </form>
