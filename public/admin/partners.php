@@ -18,6 +18,12 @@ admin_post(function () use (&$id, $db, $days, $cardTypes) {
         $db->prepare("INSERT INTO voucher_company (name, description, website, phone, email, opening_hours, location, category_id, additional_category_ids, point_accumulation, country, active)
                       VALUES (:n, '', '', '', '', '[]', '', 0, '[]', 0, :c, 0)")->execute(['n' => mb_substr($name, 0, 150), 'c' => (int) ($_POST['country'] ?? 1) === 2 ? 2 : 1]);
         $id = (int) $db->lastInsertId();
+        // Visits per account type, so the partner works in the app for every account right away
+        $dv = max(1, (int) setting('default_visits', '10'));
+        $iv = $db->prepare('INSERT INTO voucher_package_amount (v_company_id, v_package_id, v_amount_total) VALUES (:c, :p, :a)');
+        foreach (array_keys($cardTypes) as $pkg) {
+            $iv->execute(['c' => $id, 'p' => $pkg, 'a' => $dv]);
+        }
         admin_log('partner_created', '#' . $id . ' ' . $name);
         flash('Partner added. Fill in the details, add photos and discounts, then switch it on.');
         header('Location: /admin/partners.php?id=' . $id);
@@ -30,6 +36,28 @@ admin_post(function () use (&$id, $db, $days, $cardTypes) {
         throw new RuntimeException('Partner not found');
     }
     switch ($action) {
+        case 'visits_fill':
+            $dv = max(1, (int) setting('default_visits', '10'));
+            $have = $db->prepare('SELECT v_package_id FROM voucher_package_amount WHERE v_company_id = :c AND v_amount_total > 0');
+            $have->execute(['c' => $id]);
+            $have = array_map('intval', $have->fetchAll(PDO::FETCH_COLUMN));
+            $find = $db->prepare('SELECT id FROM voucher_package_amount WHERE v_company_id = :c AND v_package_id = :p ORDER BY id LIMIT 1');
+            $n = 0;
+            foreach (array_keys($cardTypes) as $pkg) {
+                if (in_array($pkg, $have, true)) {
+                    continue;
+                }
+                $find->execute(['c' => $id, 'p' => $pkg]);
+                if ($row = $find->fetchColumn()) {
+                    $db->prepare('UPDATE voucher_package_amount SET v_amount_total = :a WHERE id = :i')->execute(['a' => $dv, 'i' => $row]);
+                } else {
+                    $db->prepare('INSERT INTO voucher_package_amount (v_company_id, v_package_id, v_amount_total) VALUES (:c, :p, :a)')->execute(['c' => $id, 'p' => $pkg, 'a' => $dv]);
+                }
+                $n++;
+            }
+            admin_log('partner_visits_filled', '#' . $id . ' ' . $n);
+            flash($n ? 'Done: ' . $dv . ' visits set for ' . $n . ' account type' . ($n > 1 ? 's' : '') . '. Change the numbers in Partner visits if you like.' : 'All account types already have visits.');
+            break;
         case 'video':
             $url = trim((string) $_POST['video_url']);
             if ($url !== '' && !preg_match('~^https?://~i', $url)) {
@@ -286,7 +314,29 @@ if ($id) {
     } catch (Throwable $e) {
     }
 
+    // Account types without visits can't use this partner (and don't see it in the old store app)
+    $missing = [];
+    try {
+        $hv = $db->prepare('SELECT v_package_id FROM voucher_package_amount WHERE v_company_id = :c AND v_amount_total > 0');
+        $hv->execute(['c' => $id]);
+        $hv = array_map('intval', $hv->fetchAll(PDO::FETCH_COLUMN));
+        foreach ($cardTypes as $pkg => $label) {
+            if (!in_array($pkg, $hv, true)) {
+                $missing[] = $label;
+            }
+        }
+    } catch (Throwable $e) {
+    }
+
     admin_head($p['name'], 'partners');
+    if ($missing): ?>
+      <form method="post" class="ad-box" style="background:#fff7dc;border-color:#f0d77a"><?= csrf_field() ?>
+        <strong>No visits set for: <?= e(implode(', ', $missing)) ?>.</strong>
+        Customers with <?= count($missing) > 1 ? 'these accounts' : 'this account' ?> can't use their discount here.
+        <button class="btn btn-sm" name="action" value="visits_fill" style="margin-left:8px">Give them <?= (int) setting('default_visits', '10') ?> visits</button>
+        <a href="/admin/freebies.php" style="margin-left:8px">or set numbers in Partner visits</a>
+      </form>
+    <?php endif;
     ?>
     <p><a href="/admin/partners.php">← Partners</a><?php if ((int) $p['active'] && (int) $p['country'] === 1): ?> · <a href="/partner.php?id=<?= $id ?>" target="_blank" rel="noopener">View on the website ↗</a><?php endif; ?></p>
     <h1><?= e($p['name']) ?> <?= (int) $p['active'] ? '<span class="ad-tag ok">On the website</span>' : '<span class="ad-tag">Off</span>' ?></h1>
