@@ -5,7 +5,7 @@
 require __DIR__ . '/_db.php';
 $id = (int) ($_GET['id'] ?? 0);
 $country = (int) ($_GET['country'] ?? 1) === 2 ? 2 : 1;
-$empty = ['total' => 0, 'this_year' => 0, 'visits' => 0, 'partners' => 0, 'by_month' => [], 'top' => []];
+$empty = ['total' => 0, 'this_year' => 0, 'visits' => 0, 'partners' => 0, 'by_month' => [], 'top' => [], 'recent' => []];
 if ($id <= 0) {
     api_json($empty);
 }
@@ -42,5 +42,9 @@ foreach (array_slice($months, -6, null, true) as $m => $s) {
     $by[] = ['month' => $m, 'saved' => round($s, 2)];
 }
 usort($top, fn ($a, $b) => $b['saved'] <=> $a['saved']);
+// Latest visits first
+usort($rows, fn ($a, $b) => strcmp((string) $b['date'], (string) $a['date']));
+$recent = array_map(fn ($r) => ['name' => $r['name'], 'saved' => round((float) $r['saved'] * max(1, (int) $r['amount']), 2),
+                                 'date' => date('d-m-Y', strtotime((string) $r['date']))], array_slice(array_values(array_filter($rows, fn ($r) => (float) $r['saved'] > 0)), 0, 10));
 api_json(['total' => round($total, 2), 'this_year' => round($year, 2), 'visits' => $visits, 'partners' => count($top),
-    'by_month' => $by, 'top' => array_map(fn ($t) => ['name' => $t['name'], 'saved' => round($t['saved'], 2), 'visits' => $t['visits']], array_slice($top, 0, 5))]);
+    'by_month' => $by, 'top' => array_map(fn ($t) => ['name' => $t['name'], 'saved' => round($t['saved'], 2), 'visits' => $t['visits']], array_slice($top, 0, 5)), 'recent' => $recent]);
