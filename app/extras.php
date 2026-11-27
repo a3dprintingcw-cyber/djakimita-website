@@ -140,13 +140,19 @@ function partner_deal_text(int $companyId): string
     }
 }
 
+/** Drops a leading "Please note:" line (the box already has that heading). */
+function clean_note(string $note): string
+{
+    return trim((string) preg_replace('/^\s*(please\s+note|let\s+op|tene\s+kuidou)\s*:?\s*/iu', '', trim($note)));
+}
+
 /** "Please note" text for a partner page (set by staff). */
 function partner_note(int $companyId): string
 {
     try {
         $st = db()->prepare('SELECT note FROM partner_extra WHERE company_id = :c');
         $st->execute(['c' => $companyId]);
-        return trim((string) $st->fetchColumn());
+        return clean_note((string) $st->fetchColumn());
     } catch (Throwable $e) {
         return '';
     }
