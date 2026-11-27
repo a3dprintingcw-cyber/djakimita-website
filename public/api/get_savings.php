@@ -47,4 +47,4 @@ usort($rows, fn ($a, $b) => strcmp((string) $b['date'], (string) $a['date']));
 $recent = array_map(fn ($r) => ['name' => $r['name'], 'saved' => round((float) $r['saved'] * max(1, (int) $r['amount']), 2),
                                  'date' => date('d-m-Y', strtotime((string) $r['date']))], array_slice(array_values(array_filter($rows, fn ($r) => (float) $r['saved'] > 0)), 0, 10));
 api_json(['total' => round($total, 2), 'this_year' => round($year, 2), 'visits' => $visits, 'partners' => count($top),
-    'by_month' => $by, 'top' => array_map(fn ($t) => ['name' => $t['name'], 'saved' => round($t['saved'], 2), 'visits' => $t['visits']], array_slice($top, 0, 5)), 'recent' => $recent]);
+    'by_month' => $by, 'top' => array_map(fn ($t) => ['name' => $t['name'], 'saved' => round($t['saved'], 2), 'visits' => $t['visits']], $top), 'recent' => $recent]);
