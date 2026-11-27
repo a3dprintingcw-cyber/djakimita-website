@@ -205,6 +205,12 @@ admin_post(function () use ($id, $db, $cardTypes) {
             admin_log('card_given', $cardTypes[$pkg] . ' account to customer #' . $id . ' until ' . $d . ' · ' . trim((string) ($_POST['why'] ?? '')));
             flash('Account added. It shows in the app right away.');
             break;
+        case 'phones_clear':
+            require_once __DIR__ . '/../../app/devices.php';
+            dev_clear($db, $id);
+            admin_log('phones_logged_out', '#' . $id);
+            flash('All phones are logged out of this account. The customer logs in again on their own phone.');
+            break;
         case 'reset_link':
             $token = create_password_token($id, 24);
             $_SESSION['pw_link'] = ['id' => $id, 'link' => rtrim((string) config('base_url'), '/') . '/set-password.php?t=' . $token];
@@ -353,6 +359,14 @@ if ($id) {
             <button type="button" class="btn btn-sm" style="margin-top:6px" onclick="navigator.clipboard.writeText(this.previousElementSibling.value).then(()=>this.textContent='Copied')">Copy link</button>
             <p class="ad-muted" style="margin:6px 0 0">Only shown once. The customer opens it, chooses a password, and can then log in on the website and in the app.</p></div>
         <?php endif; ?>
+        <?php require_once __DIR__ . '/../../app/devices.php'; $phones = []; $plim = 1; try { $phones = dev_list($db, $id); $plim = dev_limit($db, $id); } catch (Throwable $e) {} ?>
+        <h2>Phones</h2>
+        <p class="ad-muted">This account may be used on <?= $plim ?> phone<?= $plim > 1 ? 's' : '' ?> at a time. When it logs in on another phone, the phone that was used the longest ago is logged out, and that phone can no longer scan.</p>
+        <?php if ($phones): ?>
+          <table class="ad-table"><tr><th>Phone</th><th>Logged in</th><th>Last used</th></tr>
+          <?php foreach ($phones as $ph): ?><tr><td><?= e($ph['label']) ?></td><td><?= e(date('d-m-Y H:i', strtotime($ph['created_at']))) ?></td><td><?= e(date('d-m-Y H:i', strtotime($ph['last_seen']))) ?></td></tr><?php endforeach; ?></table>
+          <form method="post" class="ad-actions" style="margin-top:8px"><?= csrf_field() ?><button class="btn btn-sm btn-outline" name="action" value="phones_clear" onclick="return confirm('Log out all phones of this account?')">Log out all phones</button></form>
+        <?php else: ?><p class="ad-muted">Not logged in on a phone with the new app yet.</p><?php endif; ?>
         <?php if ($esims): ?>
           <h2>eSIM</h2>
           <ul><?php foreach ($esims as $e): ?><li><?= e($e['phone']) ?> · <?= (int) $e['confirmed'] === 2 ? 'sent' : ((int) $e['confirmed'] === 1 ? 'paid, to send' : 'not paid') ?></li><?php endforeach; ?></ul>
