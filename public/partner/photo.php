@@ -5,7 +5,7 @@ require __DIR__ . '/../../app/bootstrap.php';
 $u = pp_user();
 $vid = (int) ($_GET['v'] ?? 0);
 $acc = (int) ($_GET['a'] ?? 0);
-$a = $u ? pp_lookup($acc, (int) $u['company_id']) : null;
+$a = ($u && pp_may_see($acc, (int) $u['company_id'])) ? pp_lookup($acc, (int) $u['company_id']) : null;
 $ok = false;
 foreach (($a['holders'] ?? []) as $h) {
     if ((int) $h['photo'] === $vid && $vid > 0) {

@@ -25,6 +25,9 @@ $raw = trim((string) ($_GET['acc'] ?? ''));
 $acc = pp_account_id($raw);
 $a = $raw !== '' ? pp_lookup($acc, $cid) : null;
 $why = $a ? pp_block_reason($a) : '';
+if ($a) {
+    $_SESSION['pp_seen'][(int) $a['customer']] = time(); // may see the check photo for 30 minutes
+}
 $stats = pp_stats($cid);
 
 pp_head('Check an account', $u, 'scan');

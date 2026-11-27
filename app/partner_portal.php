@@ -192,13 +192,66 @@ function pp_stats(int $companyId): array
     ];
 }
 
+/** Short name for partners: first name and the first letter of the last name ("Maria J."). */
+function pp_short_name(string $first, string $last = ''): string
+{
+    $first = trim($first);
+    $last = trim($last);
+    if ($last === '' && str_contains($first, ' ')) {
+        [$first, $last] = explode(' ', $first, 2);
+    }
+    return trim($first . ($last !== '' ? ' ' . mb_strtoupper(mb_substr($last, 0, 1)) . '.' : ''));
+}
+
+/** Last visits at this partner, with who it was: name, account type, people on the account, photo. */
 function pp_recent(int $companyId, int $limit = 15): array
 {
-    $st = db()->prepare('SELECT i.date, p.users_id AS account, p.package_id
-                         FROM client_package_info i LEFT JOIN clients_package p ON p.id = i.users_package_id
-                         WHERE i.company_id = :c ORDER BY i.date DESC LIMIT ' . (int) $limit);
+    $db = db();
+    $st = $db->prepare('SELECT i.date, i.users_package_id AS pkg, p.users_id AS account, p.package_id, c.username AS first, c.lastName AS last
+                        FROM client_package_info i
+                        LEFT JOIN clients_package p ON p.id = i.users_package_id
+                        LEFT JOIN clients c ON c.id = p.users_id
+                        WHERE i.company_id = :c ORDER BY i.date DESC LIMIT ' . (int) $limit);
     $st->execute(['c' => $companyId]);
-    return $st->fetchAll();
+    $rows = $st->fetchAll();
+    $people = $db->prepare('SELECT h.name, h.client_birthdate AS birth, s.user_id AS client_id
+                            FROM sale_receits s JOIN client_package_customers h ON h.order_id = s.id
+                            WHERE s.client_package_id = :p AND s.status IN (1, 2) ORDER BY h.id');
+    $cache = [];
+    foreach ($rows as &$r) {
+        $pkg = (int) $r['pkg'];
+        if (!isset($cache[$pkg])) {
+            $names = [];
+            $photo = 0;
+            $people->execute(['p' => $pkg]);
+            foreach ($people->fetchAll() as $h) {
+                $names[] = pp_short_name((string) $h['name']);
+                if (!$photo && $h['birth'] && function_exists('find_verification')) {
+                    $v = find_verification((int) $h['client_id'], (string) $h['name'], (string) $h['birth']);
+                    if ($v && (int) $v['status'] === VERIFY_APPROVED && $v['face_file']) {
+                        $photo = (int) $v['id'];
+                    }
+                }
+            }
+            $cache[$pkg] = ['names' => $names, 'photo' => $photo];
+        }
+        $r['who'] = pp_short_name((string) $r['first'], (string) $r['last']) ?: ($cache[$pkg]['names'][0] ?? 'Customer');
+        $r['people'] = $cache[$pkg]['names'];
+        $r['photo'] = $cache[$pkg]['photo'];
+    }
+    return $rows;
+}
+
+/** May this partner see this customer's check photo? Only when the customer visited them, or was just checked here. */
+function pp_may_see(int $customerId, int $companyId): bool
+{
+    if (($_SESSION['pp_seen'][$customerId] ?? 0) > time() - 1800) {
+        return true;
+    }
+    $st = db()->prepare('SELECT 1 FROM client_package_info i JOIN clients_package p ON p.id = i.users_package_id
+                         WHERE p.users_id = :u AND i.company_id = :c LIMIT 1');
+    $st->execute(['u' => $customerId, 'c' => $companyId]);
+    return (bool) $st->fetchColumn();
 }
 
 /** Page shell for the partner portal: phone first, same colours and fonts as the website. */
@@ -267,6 +320,14 @@ body{background:#f4f6f2}
 .pp-err{background:#fdeceb;border:1px solid #f0aaa4;border-radius:12px;padding:10px 14px;margin-bottom:14px;font-weight:600;color:#7d1d15}
 .pp-muted{color:#5d6b60}
 #pp-cam{width:100%;max-width:420px;border-radius:14px;overflow:hidden;margin-top:10px}
+.pp-visits{display:grid;gap:8px}
+.pp-day{font-weight:700;color:#5d6b60;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-top:8px}
+.pp-visit{display:grid;grid-template-columns:52px 1fr auto auto;gap:12px;align-items:center;background:#f8faf6;border:1px solid #e3e9df;border-radius:14px;padding:8px 12px 8px 8px}
+.pp-visit img,.pp-visit i{width:52px;height:52px;border-radius:12px;object-fit:cover;background:#dfeedd;color:#187c19;display:grid;place-items:center;font-style:normal;font-weight:800;font-size:1.3rem}
+.pp-visit .who{display:grid;gap:2px;min-width:0}
+.pp-visit .who span{font-size:.88rem;color:#3b4a3d;overflow:hidden;text-overflow:ellipsis}
+.pp-visit time{font-weight:700;color:#1d3b1f}
+@media(max-width:520px){.pp-visit{grid-template-columns:48px 1fr auto}.pp-visit .btn{display:none}}
 </style>
 </head>
 <body>
