@@ -467,9 +467,20 @@ if ($id) {
       <?php else: ?>
         <form method="post" class="ad-actions" style="margin-top:10px"><?= csrf_field() ?>
           <span class="ad-muted">This removes the partner, its photos, discounts and logins for good. Type the name to confirm:</span>
-          <input class="ad-in" type="text" name="confirm" placeholder="<?= e(trim($p['name'])) ?>" style="max-width:260px">
-          <button class="btn btn-sm btn-outline" name="action" value="delete" style="color:#8a2216;border-color:#8a2216">Delete for good</button>
+          <input class="ad-in" type="text" name="confirm" id="del-name" placeholder="<?= e(trim($p['name'])) ?>" style="max-width:260px" autocomplete="off">
+          <button class="btn btn-sm btn-outline" name="action" value="delete" id="del-btn" disabled style="color:#8a2216;border-color:#8a2216;opacity:.4">Delete for good</button>
         </form>
+        <script>
+        (function () {
+          var want = <?= json_encode(trim((string) $p['name']), JSON_HEX_TAG | JSON_HEX_APOS) ?>;
+          var box = document.getElementById('del-name'), btn = document.getElementById('del-btn');
+          box.addEventListener('input', function () { var ok = box.value.trim() === want; btn.disabled = !ok; btn.style.opacity = ok ? 1 : .4; });
+          btn.addEventListener('click', function (e) {
+            if (!confirm('Are you being clumsy? 😅\n\nYou are about to DELETE "' + want + '" for good: its photos, discounts and partner logins are gone too.\n\nClick OK only if you really mean it.')) { e.preventDefault(); return; }
+            if (!confirm('Last chance! Delete "' + want + '" forever? This can NOT be undone.\n\n(Tip: to hide a partner, just untick "Show this partner" at the top.)')) { e.preventDefault(); }
+          });
+        })();
+        </script>
       <?php endif; ?>
     </details>
     <?php
