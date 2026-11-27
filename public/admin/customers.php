@@ -222,6 +222,11 @@ admin_post(function () use ($id, $db, $cardTypes) {
             admin_log('points_adjusted', '#' . $id . ' ' . ($n > 0 ? '+' : '') . $n . ' · ' . $why);
             flash(($n > 0 ? 'Added ' : 'Took away ') . abs($n) . ' points.');
             break;
+        case 'bday_test':
+            set_setting('bday_test_' . $id, (string) $db->query('SELECT CURDATE()')->fetchColumn());
+            admin_log('birthday_test', '#' . $id);
+            flash('Birthday test is on for today. Open the app on this customer\'s phone (or pull down / reopen it): the birthday screen with confetti shows. Claiming it in test mode adds no points.');
+            break;
         case 'phones_give':
             require_once __DIR__ . '/../../app/devices.php';
             $ok = dev_give_change($db, $id);
@@ -385,6 +390,7 @@ if ($id) {
           <input type="number" name="points" placeholder="+50 or -50" style="max-width:120px">
           <input type="text" name="why" placeholder="Reason, e.g. sorry for the trouble" maxlength="120" style="flex:1;min-width:160px">
           <button class="btn btn-sm btn-outline" name="action" value="points_adjust">Add or take away</button></form>
+        <form method="post" class="ad-actions" style="margin:4px 0 8px"><?= csrf_field() ?><button class="btn btn-sm btn-outline" name="action" value="bday_test">🎂 Test birthday surprise in the app</button></form>
         <h2>Phones</h2>
         <p class="ad-muted">This account may be used on <?= $plim ?> phone<?= $plim > 1 ? 's' : '' ?>. Moving it to a new phone is allowed <?= $callow ?> times per 12 months; the old phone is then logged out and can no longer scan. Logging out and in again on the same phone is free.</p>
         <p><strong>Phone changes used in the last 12 months: <?= count($chg) ?> of <?= $callow ?></strong><?php if ($chg): ?> <span class="ad-muted">(<?= e(implode(', ', array_map(fn($d) => date('d-m-Y', strtotime($d)), $chg))) ?>)</span><?php endif; ?></p>

@@ -178,31 +178,6 @@ function pts_sync(PDO $db, int $clientId): void
     pts_sync_invites($db, $r, 'inviter_id = :c', $clientId, $start);
     pts_sync_invites($db, $r, 's.user_id = :c', $clientId, $start);
 
-    // Birthday
-    if ($r['pts_birthday'] > 0) {
-        $st = $db->prepare('SELECT h.client_birthdate, MIN(s.dia_orario) AS bought FROM sale_receits s
-                            JOIN client_package_customers h ON h.order_id = s.id
-                            WHERE s.user_id = :c AND s.status IN (1, 2) AND h.client_birthdate IS NOT NULL
-                            GROUP BY h.id ORDER BY h.id LIMIT 1');
-        $st->execute(['c' => $clientId]);
-        $b = $st->fetch(PDO::FETCH_ASSOC);
-        $act = $db->prepare('SELECT COUNT(*) FROM clients_package WHERE users_id = :c AND expire >= CURDATE()');
-        $act->execute(['c' => $clientId]);
-        if ($b && (int) $act->fetchColumn() > 0) {
-            $today = (string) $db->query('SELECT CURDATE()')->fetchColumn();
-            $y = (int) substr($today, 0, 4);
-            $md = substr((string) $b['client_birthdate'], 5, 5);
-            if ($md === '02-29' && !checkdate(2, 29, $y)) {
-                $md = '02-28';
-            }
-            $bday = $y . '-' . $md;
-            if ($today >= $bday && $today <= date('Y-m-d', strtotime($bday . ' +30 days')) && $bday >= $r['points_start']
-                && strtotime((string) $b['bought']) <= strtotime($bday . ' -30 days')) {
-                pts_add($db, $clientId, $r['pts_birthday'], 'birthday', $clientId . ':' . $y, 'Happy birthday!', $bday . ' 08:00:00');
-            }
-        }
-    }
-
     // Reward codes that ran out unused: points back
     $st = $db->prepare('SELECT c.id, c.points, r.title FROM reward_claims c JOIN rewards r ON r.id = c.reward_id
                         WHERE c.client_id = :c AND c.used_at IS NULL AND c.cancelled_at IS NULL AND c.expires_at < NOW()');
@@ -211,6 +186,68 @@ function pts_sync(PDO $db, int $clientId): void
         $db->prepare('UPDATE reward_claims SET cancelled_at = NOW() WHERE id = :i')->execute(['i' => $c['id']]);
         pts_add($db, $clientId, (int) $c['points'], 'refund', (string) $c['id'], 'Code not used: points back (' . $c['title'] . ')');
     }
+}
+
+/**
+ * Birthday gift: the customer claims it in the app (birthday screen with confetti).
+ * Real: once per year, from the birthday until 30 days after, with a valid account bought at least 30 days before.
+ * Test (staff button on the customer page): shows the screen once today, gives no points.
+ * Returns null or ['name', 'points', 'test', 'ref'].
+ */
+function pts_birthday_offer(PDO $db, int $clientId): ?array
+{
+    if ($clientId <= 0 || !pts_on($db)) {
+        return null;
+    }
+    $r = pts_rules($db);
+    $st = $db->prepare('SELECT TRIM(username) FROM clients WHERE id = :c');
+    $st->execute(['c' => $clientId]);
+    $name = (string) $st->fetchColumn();
+    $today = (string) $db->query('SELECT CURDATE()')->fetchColumn();
+
+    $st = $db->prepare('SELECT v FROM site_settings WHERE k = :k');
+    $st->execute(['k' => 'bday_test_' . $clientId]);
+    if ((string) $st->fetchColumn() === $today) {
+        return ['name' => $name, 'points' => $r['pts_birthday'], 'test' => true, 'ref' => ''];
+    }
+    if ($r['pts_birthday'] <= 0) {
+        return null;
+    }
+    $st = $db->prepare('SELECT h.client_birthdate, TRIM(h.name) AS hname, MIN(s.dia_orario) AS bought FROM sale_receits s
+                        JOIN client_package_customers h ON h.order_id = s.id
+                        WHERE s.user_id = :c AND s.status IN (1, 2) AND h.client_birthdate IS NOT NULL
+                        GROUP BY h.id ORDER BY h.id LIMIT 1');
+    $st->execute(['c' => $clientId]);
+    $b = $st->fetch(PDO::FETCH_ASSOC);
+    if (!$b || !pts_has_valid_account($db, $clientId)) {
+        return null;
+    }
+    $y = (int) substr($today, 0, 4);
+    $md = substr((string) $b['client_birthdate'], 5, 5);
+    if ($md === '02-29' && !checkdate(2, 29, $y)) {
+        $md = '02-28';
+    }
+    $bday = $y . '-' . $md;
+    $ref = $clientId . ':' . $y;
+    if ($today < $bday || $today > date('Y-m-d', strtotime($bday . ' +30 days')) || $bday < $r['points_start']
+        || strtotime((string) $b['bought']) > strtotime($bday . ' -30 days') || pts_has($db, 'birthday', $ref)) {
+        return null;
+    }
+    return ['name' => $name !== '' ? $name : (string) strtok((string) $b['hname'], ' '), 'points' => $r['pts_birthday'], 'test' => false, 'ref' => $ref];
+}
+
+/** Claim the birthday gift. Returns the offer that was claimed, or null. */
+function pts_birthday_claim(PDO $db, int $clientId): ?array
+{
+    $o = pts_birthday_offer($db, $clientId);
+    if (!$o) {
+        return null;
+    }
+    if ($o['test']) {
+        $db->prepare('DELETE FROM site_settings WHERE k = :k')->execute(['k' => 'bday_test_' . $clientId]);
+        return $o;
+    }
+    return pts_add($db, $clientId, $o['points'], 'birthday', $o['ref'], 'Happy birthday!') ? $o : null;
 }
 
 function pts_sync_invites(PDO $db, array $r, string $where, int $clientId, string $start): void

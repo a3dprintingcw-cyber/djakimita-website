@@ -28,6 +28,7 @@ try {
         'history' => $hist,
         'codes' => $codes,
         'invite_code' => invite_code($id),
+        'birthday' => ($bd = pts_birthday_offer($db, $id)) ? ['name' => $bd['name'], 'points' => $bd['points'], 'test' => $bd['test']] : null,
         'rules' => [
             'visit' => $r['pts_visit'], 'visit_day_max' => $r['pts_visit_day_max'], 'purchase_month' => $r['pts_purchase_month'],
             'invite' => $r['pts_invite'], 'invited' => $r['pts_invited'], 'invite_hold_days' => $r['invite_hold_days'],
