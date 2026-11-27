@@ -19,7 +19,7 @@ function before_launch(): bool
 
 /** Pages that stay open during the countdown, so people can pre-order. */
 const COUNTDOWN_OPEN = [
-    'checkout.php', 'pay.php', 'done.php', 'verify.php', 'mollie-webhook.php', 'stripe-webhook.php', 'sentoo-webhook.php',
+    'checkout.php', 'pay.php', 'done.php', 'points-done.php', 'verify.php', 'mollie-webhook.php', 'stripe-webhook.php', 'sentoo-webhook.php',
     'login.php', 'account.php', 'set-password.php', 'forgot-password.php', 'deletedata.php',
     'termsandconditions.php', 'privacy_policy.php', 'img.php', 'robots.txt',
     'partners.php', 'partner.php', 'discount.php', 'wheel-spin.php', 'contact.php',
@@ -225,7 +225,7 @@ function countdown_gate(): void
     }
     $script = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
     $path = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
-    if (in_array($script, COUNTDOWN_OPEN, true) || str_starts_with($path, '/admin') || str_starts_with($path, '/partner/') || $script === 'partner-login.php') {
+    if (in_array($script, COUNTDOWN_OPEN, true) || str_starts_with($path, '/admin') || str_starts_with($path, '/partner/') || str_starts_with($path, '/api/') || $script === 'partner-login.php') {
         return;
     }
     // Staff can look at the full site before launch with ?peek=<preview key>

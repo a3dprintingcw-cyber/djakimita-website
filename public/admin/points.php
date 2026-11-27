@@ -25,6 +25,23 @@ admin_post(function () use ($db) {
             admin_log('points_rules', $on ? 'on' : 'off');
             flash($on ? 'Saved. Points are on.' : 'Saved. Points are off: the app shows "Coming soon".');
             break;
+        case 'shop':
+            set_setting('pts_buy_on', empty($_POST['pts_buy_on']) ? '0' : '1');
+            set_setting('pts_extra_scan', (string) $int('pts_extra_scan', 1, 100000));
+            set_setting('extra_scan_count', (string) $int('extra_scan_count', 1, 50));
+            $packs = [];
+            foreach ((array) ($_POST['pack_points'] ?? []) as $i => $pp) {
+                $pp = (int) $pp;
+                if ($pp <= 0) {
+                    continue;
+                }
+                $num = fn ($k) => max(0, round((float) str_replace(',', '.', (string) ($_POST[$k][$i] ?? 0)), 2));
+                $packs[] = ['points' => $pp, 'xcg' => $num('pack_xcg'), 'usd' => $num('pack_usd'), 'eur' => $num('pack_eur')];
+            }
+            set_setting('points_packs', json_encode($packs));
+            admin_log('points_shop_saved');
+            flash('Saved.');
+            break;
         case 'reward_add':
         case 'reward_save':
             $title = mb_substr(trim((string) $_POST['title']), 0, 120);
@@ -133,6 +150,23 @@ admin_head('Points', 'points');
   <div class="full"><button class="btn btn-sm" name="action" value="rules">Save</button></div>
 </form>
 
+<?php $packs = pts_packs($db); while (count($packs) < 4) { $packs[] = ['points' => '', 'xcg' => '', 'usd' => '', 'eur' => '']; } ?>
+<form method="post" class="ad-box ad-form"><?= csrf_field() ?>
+  <h2 class="full" style="margin-top:0">Buy points and extra visits</h2>
+  <div><label>Extra visit at a partner costs (points)</label><input type="number" name="pts_extra_scan" min="1" value="<?= $rules['pts_extra_scan'] ?>"></div>
+  <div><label>Extra visits you get for that</label><input type="number" name="extra_scan_count" min="1" value="<?= $rules['extra_scan_count'] ?>"></div>
+  <p class="full ad-muted" style="margin-top:0">When a customer has used all visits at a partner, the app offers extra visits for points. They can only buy when they have none left there.</p>
+  <label class="check full"><input type="checkbox" name="pts_buy_on" value="1"<?= $rules['pts_buy_on'] ? ' checked' : '' ?>> <span><strong>Customers can buy points with money</strong> in the app (Rewards → Shop). Paid with Sentoo (XCG) or Mollie (card), like accounts. Points are added once the payment is confirmed; bought points don't count for levels.</span></label>
+  <div class="full ad-wrap"><table class="ad-table"><thead><tr><th>Points</th><th>Price XCG (Sentoo)</th><th>Price $ (Mollie, Curaçao without Sentoo)</th><th>Price € (Rib'e lugá)</th></tr></thead><tbody>
+  <?php foreach ($packs as $pk): ?><tr>
+    <td><input type="number" name="pack_points[]" min="0" value="<?= e((string) $pk['points']) ?>" style="max-width:110px"></td>
+    <td><input type="text" name="pack_xcg[]" value="<?= e((string) $pk['xcg']) ?>" style="max-width:110px"></td>
+    <td><input type="text" name="pack_usd[]" value="<?= e((string) $pk['usd']) ?>" style="max-width:110px"></td>
+    <td><input type="text" name="pack_eur[]" value="<?= e((string) $pk['eur']) ?>" style="max-width:110px"></td></tr><?php endforeach; ?>
+  </tbody></table><small class="ad-muted">Leave Points empty to remove a pack. Tip: keep points a bit more expensive than what the rewards are worth.</small></div>
+  <div class="full"><button class="btn btn-sm" name="action" value="shop">Save</button></div>
+</form>
+
 <form method="post" class="ad-box ad-form"><?= csrf_field() ?>
   <h2 class="full" style="margin-top:0">New reward</h2>
   <?php $rewardForm(null); ?>
@@ -168,6 +202,13 @@ admin_head('Points', 'points');
 <?php endforeach; ?>
 <?php if (!$claims): ?><tr><td colspan="6" class="ad-muted"><?= $find !== '' ? 'No code ' . e($find) . '.' : 'No codes yet.' ?></td></tr><?php endif; ?>
 </tbody></table></div>
+
+<?php $po = $db->query('SELECT o.*, TRIM(c.username) AS first, TRIM(c.lastName) AS last FROM points_orders o JOIN clients c ON c.id = o.client_id WHERE o.status = 1 ORDER BY o.id DESC LIMIT 30')->fetchAll(); if ($po): ?>
+<h2>Points bought</h2>
+<div class="ad-wrap"><table class="ad-table"><thead><tr><th>Date</th><th>Customer</th><th>Points</th><th>Paid</th></tr></thead><tbody>
+<?php foreach ($po as $o): ?><tr><td><?= e(date('d-m-Y H:i', strtotime((string) $o['paid_at']))) ?></td><td><a href="/admin/customers.php?id=<?= (int) $o['client_id'] ?>"><?= e(trim($o['first'] . ' ' . $o['last'])) ?></a></td><td><?= (int) $o['points'] ?></td><td><?= e(strtoupper($o['currency']) . ' ' . number_format((float) $o['amount'], 2)) ?></td></tr><?php endforeach; ?>
+</tbody></table></div>
+<?php endif; ?>
 
 <?php if ($top): ?>
 <h2>Most points</h2>

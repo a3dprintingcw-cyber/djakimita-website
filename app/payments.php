@@ -292,6 +292,50 @@ function sentoo_new_payment(int $mainId): string
 }
 
 // ---------------------------------------------------------------------------
+// Points bought in the app: own small orders in points_orders, paid like account orders.
+// XCG goes through Sentoo, USD and EUR through Mollie. The webhooks call fulfill_payment_intent().
+// ---------------------------------------------------------------------------
+function points_order_sig(int $id): string
+{
+    return order_sig(900000000 + $id);
+}
+
+/** Creates the payment for a points order. Returns the payment page link. */
+function points_create_payment(int $orderId, float $total, string $currency, string $email): string
+{
+    $base = rtrim((string) config('base_url'), '/');
+    $done = $base . '/points-done.php?' . http_build_query(['o' => $orderId, 's' => points_order_sig($orderId)]);
+    if ($currency === 'xcg') {
+        $res = sentoo('POST', 'payment/new', [
+            'sentoo_merchant' => config('sentoo_merchant_id'),
+            'sentoo_amount' => (int) round($total * 100),
+            'sentoo_currency' => (string) config('sentoo_currency', 'XCG'),
+            'sentoo_description' => "Dj'aki mi ta! points #" . $orderId,
+            'sentoo_return_url' => $done,
+            'sentoo_customer' => $email,
+            'sentoo_expires' => date('c', time() + 2 * 3600),
+        ]);
+        $ok = $res['success'] ?? [];
+        $id = (string) ($ok['message'] ?? ($ok['data']['id'] ?? ($ok['data']['transaction_id'] ?? '')));
+        $url = (string) ($ok['data']['url'] ?? '');
+        if ($id === '' || $url === '') {
+            throw new RuntimeException('Payment service unavailable');
+        }
+        db()->prepare('UPDATE points_orders SET token = :t WHERE id = :i')->execute(['t' => 'sentoo:' . $id, 'i' => $orderId]);
+        return $url;
+    }
+    $p = mollie('POST', 'payments', [
+        'amount' => ['currency' => strtoupper($currency), 'value' => number_format($total, 2, '.', '')],
+        'description' => "Dj'aki mi ta! points #" . $orderId,
+        'redirectUrl' => $done,
+        'webhookUrl' => $base . '/mollie-webhook.php',
+        'metadata' => ['points_order' => $orderId, 'email' => $email],
+    ]);
+    db()->prepare('UPDATE points_orders SET token = :t WHERE id = :i')->execute(['t' => (string) $p['id'], 'i' => $orderId]);
+    return (string) $p['_links']['checkout']['href'];
+}
+
+// ---------------------------------------------------------------------------
 // Customers
 // ---------------------------------------------------------------------------
 
@@ -445,6 +489,11 @@ function fulfill_payment_intent(string $intentId): bool
     // Works for Stripe (pi_...) and Mollie (tr_...): always asks the provider, never trusts the caller.
     if (payment_status($intentId)['state'] !== 'paid') {
         return false;
+    }
+    // Points bought in the app (see points_create_payment)
+    require_once __DIR__ . '/points.php';
+    if (pts_order_paid(db(), $intentId)) {
+        return true;
     }
     activate_order($intentId);
     return true;

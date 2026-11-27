@@ -28,6 +28,19 @@ try {
         'history' => $hist,
         'codes' => $codes,
         'invite_code' => invite_code($id),
+        'buy' => (function () use ($db) {
+            if (pts_setting($db, 'pts_buy_on', '1') !== '1') {
+                return null;
+            }
+            $c = require __DIR__ . '/../../app/config.local.php';
+            $sentoo = ($c['sentoo_merchant_id'] ?? '') !== '' && ($c['sentoo_secret'] ?? '') !== '';
+            $mollie = ($c['mollie_api_key'] ?? '') !== '';
+            $cur = [1 => $sentoo ? 'xcg' : ($mollie ? 'usd' : null), 2 => $mollie ? 'eur' : null];
+            if (!$cur[1] && !$cur[2]) {
+                return null;
+            }
+            return ['currency' => $cur, 'packs' => pts_packs($db)];
+        })(),
         'birthday' => ($bd = pts_birthday_offer($db, $id)) ? ['name' => $bd['name'], 'points' => $bd['points'], 'test' => $bd['test']] : null,
         'rules' => [
             'visit' => $r['pts_visit'], 'visit_day_max' => $r['pts_visit_day_max'], 'purchase_month' => $r['pts_purchase_month'],

@@ -158,6 +158,15 @@ function pp_lookup(int $customerId, int $companyId): ?array
     $st->execute(['c' => $companyId, 'p' => (int) $a['package_id']]);
     $total = $st->fetchColumn();
     $a['visits_total'] = $total === false ? null : (int) $total;
+    if ($a['visits_total'] !== null && $accountId > 0) {
+        // Extra visits the customer bought with points at this partner
+        try {
+            $st = $db->prepare('SELECT COALESCE(SUM(scans), 0) FROM extra_scans WHERE account_id = :a AND company_id = :c');
+            $st->execute(['a' => $accountId, 'c' => $companyId]);
+            $a['visits_total'] += (int) $st->fetchColumn();
+        } catch (Throwable $e) {
+        }
+    }
     $st = $db->prepare('SELECT COALESCE(SUM(amount), 0) FROM client_package_info WHERE users_package_id = :a AND company_id = :c');
     $st->execute(['a' => $accountId, 'c' => $companyId]);
     $a['visits_used'] = (int) $st->fetchColumn();

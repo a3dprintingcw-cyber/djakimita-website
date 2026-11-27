@@ -42,7 +42,25 @@ const PTS_DEFAULTS = [
     'invite_hold_days' => '14',
     'invite_year_max' => '10',
     'pts_birthday' => '50',
+    'pts_extra_scan' => '50',      // points for extra visits at a partner when all visits there are used
+    'extra_scan_count' => '1',     // how many extra visits you get for that
+    'pts_buy_on' => '1',           // customers can buy points with money
 ];
+
+// Point packs for sale (backend → Points). Prices: xcg (Sentoo), usd and eur (Mollie).
+const PTS_PACKS_DEFAULT = [
+    ['points' => 250, 'xcg' => 15, 'usd' => 8.5, 'eur' => 8],
+    ['points' => 500, 'xcg' => 27, 'usd' => 15, 'eur' => 14],
+    ['points' => 1000, 'xcg' => 50, 'usd' => 28, 'eur' => 26],
+];
+
+function pts_packs(PDO $db): array
+{
+    $raw = pts_setting($db, 'points_packs', '');
+    $p = $raw !== '' ? json_decode($raw, true) : null;
+    $p = is_array($p) && $p ? $p : PTS_PACKS_DEFAULT;
+    return array_values(array_filter($p, fn ($x) => (int) ($x['points'] ?? 0) > 0));
+}
 
 function pts_rules(PDO $db): array
 {
@@ -315,7 +333,7 @@ function pts_pending(PDO $db, int $clientId): int
 function pts_earned_12m(PDO $db, int $clientId): int
 {
     $st = $db->prepare("SELECT COALESCE(SUM(points), 0) FROM points_ledger WHERE client_id = :c AND points > 0
-                        AND kind NOT IN ('refund', 'adjust') AND created_at > NOW() - INTERVAL 12 MONTH AND available_at <= NOW()");
+                        AND kind NOT IN ('refund', 'adjust', 'bought') AND created_at > NOW() - INTERVAL 12 MONTH AND available_at <= NOW()");
     $st->execute(['c' => $clientId]);
     return (int) $st->fetchColumn();
 }
@@ -435,4 +453,102 @@ function pts_claim_state(array $c): string
         return 'expired';
     }
     return 'open';
+}
+
+
+// ---------------------------------------------------------------------------
+// Visits at a partner, and extra visits bought with points
+// ---------------------------------------------------------------------------
+
+/** The account used at partners: valid, latest end date. */
+function pts_main_account(PDO $db, int $clientId, int $accountId = 0): ?array
+{
+    if ($accountId > 0) {
+        // The account picked in the app (must be this customer's and still valid)
+        $st = $db->prepare('SELECT id, package_id, expire FROM clients_package WHERE id = :a AND users_id = :c AND expire >= CURDATE()');
+        $st->execute(['a' => $accountId, 'c' => $clientId]);
+        if ($r = $st->fetch(PDO::FETCH_ASSOC)) {
+            return $r;
+        }
+    }
+    $st = $db->prepare('SELECT id, package_id, expire FROM clients_package WHERE users_id = :c AND expire >= CURDATE() ORDER BY expire DESC LIMIT 1');
+    $st->execute(['c' => $clientId]);
+    return $st->fetch(PDO::FETCH_ASSOC) ?: null;
+}
+
+/** Visits for an account (clients_package row) at a partner: total, extra, used, left. */
+function visits_at(PDO $db, int $accountId, int $packageId, int $companyId): array
+{
+    $st = $db->prepare('SELECT v_amount_total FROM voucher_package_amount WHERE v_company_id = :c AND v_package_id = :p ORDER BY id DESC LIMIT 1');
+    $st->execute(['c' => $companyId, 'p' => $packageId]);
+    $total = (int) $st->fetchColumn();
+    $st = $db->prepare('SELECT COALESCE(SUM(scans), 0) FROM extra_scans WHERE account_id = :a AND company_id = :c');
+    $st->execute(['a' => $accountId, 'c' => $companyId]);
+    $extra = (int) $st->fetchColumn();
+    $st = $db->prepare('SELECT COALESCE(SUM(amount), 0) FROM client_package_info WHERE users_package_id = :a AND company_id = :c');
+    $st->execute(['a' => $accountId, 'c' => $companyId]);
+    $used = (int) $st->fetchColumn();
+    return ['total' => $total, 'extra' => $extra, 'used' => $used, 'left' => max(0, $total + $extra - $used)];
+}
+
+/** Buy extra visits at a partner with points. Only when all visits there are used. */
+function pts_buy_extra_scan(PDO $db, int $clientId, int $companyId, int $accountId = 0): array
+{
+    if (!pts_on($db)) {
+        return ['ok' => false, 'why' => 'Points are not open yet.'];
+    }
+    $acc = pts_main_account($db, $clientId, $accountId);
+    if (!$acc) {
+        return ['ok' => false, 'why' => 'You need a valid account for this.'];
+    }
+    $r = pts_rules($db);
+    $cost = max(1, $r['pts_extra_scan']);
+    $count = max(1, $r['extra_scan_count']);
+    $lock = 'djk_pts_' . $clientId;
+    $db->query('SELECT GET_LOCK(' . $db->quote($lock) . ', 5)');
+    try {
+        $v = visits_at($db, (int) $acc['id'], (int) $acc['package_id'], $companyId);
+        if ($v['total'] <= 0) {
+            return ['ok' => false, 'why' => 'Your account has no visits at this partner.'];
+        }
+        if ($v['left'] > 0) {
+            return ['ok' => false, 'why' => 'You still have visits left here.'];
+        }
+        pts_sync($db, $clientId);
+        if (pts_balance($db, $clientId) < $cost) {
+            return ['ok' => false, 'why' => 'You need ' . $cost . ' points for this.'];
+        }
+        $db->beginTransaction();
+        $db->prepare('INSERT INTO extra_scans (client_id, account_id, company_id, scans, points, created_at) VALUES (:c, :a, :co, :s, :p, NOW())')
+            ->execute(['c' => $clientId, 'a' => $acc['id'], 'co' => $companyId, 's' => $count, 'p' => $cost]);
+        $xid = (int) $db->lastInsertId();
+        $st = $db->prepare('SELECT TRIM(name) FROM voucher_company WHERE id = :i');
+        $st->execute(['i' => $companyId]);
+        pts_add($db, $clientId, -$cost, 'extra_scan', (string) $xid, ($count > 1 ? $count . ' extra visits: ' : 'Extra visit: ') . ((string) $st->fetchColumn() ?: 'partner'));
+        $db->commit();
+        return ['ok' => true, 'left' => $count];
+    } catch (Throwable $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        throw $e;
+    } finally {
+        $db->query('SELECT RELEASE_LOCK(' . $db->quote($lock) . ')');
+    }
+}
+
+/** A points order was paid: add the points once. */
+function pts_order_paid(PDO $db, string $token): bool
+{
+    $st = $db->prepare('SELECT * FROM points_orders WHERE token = :t');
+    $st->execute(['t' => $token]);
+    $o = $st->fetch(PDO::FETCH_ASSOC);
+    if (!$o) {
+        return false;
+    }
+    if ((int) $o['status'] !== 1) {
+        $db->prepare('UPDATE points_orders SET status = 1, paid_at = NOW() WHERE id = :i AND status = 0')->execute(['i' => $o['id']]);
+        pts_add($db, (int) $o['client_id'], (int) $o['points'], 'bought', (string) $o['id'], 'Points bought (' . strtoupper((string) $o['currency']) . ' ' . number_format((float) $o['amount'], 2) . ')');
+    }
+    return true;
 }
