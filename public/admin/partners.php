@@ -398,10 +398,29 @@ if ($id) {
         <?php endforeach; ?>
         <?php if (!$photos): ?><p class="ad-muted">No photos yet.</p><?php endif; ?>
       </div>
-      <form method="post" enctype="multipart/form-data" class="ad-actions"><?= csrf_field() ?>
-        <input type="file" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple required>
-        <button class="btn btn-sm" name="action" value="photo_add">Upload</button>
+      <form method="post" enctype="multipart/form-data" id="photo-form" style="margin-top:14px;padding:14px;border:2px dashed #cfe0c9;border-radius:14px"><?= csrf_field() ?>
+        <strong>Add photos</strong> <span class="ad-muted">(1 or more, JPG or PNG; a wide photo like 1600 × 1200 looks best)</span><br>
+        <input type="file" name="photos[]" id="photo-pick" accept="image/jpeg,image/png,image/webp" multiple required style="margin:10px 0">
+        <div id="photo-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
+        <button class="btn" name="action" value="photo_add" id="photo-save">Save photos</button>
       </form>
+      <script>
+      (function () {
+        var pick = document.getElementById('photo-pick'), prev = document.getElementById('photo-preview'), f = document.getElementById('photo-form'), b = document.getElementById('photo-save');
+        pick.addEventListener('change', function () {
+          prev.innerHTML = '';
+          Array.prototype.forEach.call(pick.files, function (file) {
+            var im = document.createElement('img'); im.src = URL.createObjectURL(file);
+            im.style.cssText = 'height:80px;border-radius:10px;object-fit:cover'; prev.appendChild(im);
+          });
+          b.textContent = pick.files.length > 1 ? 'Save ' + pick.files.length + ' photos' : 'Save photo';
+        });
+        f.addEventListener('submit', function () {
+          var h = document.createElement('input'); h.type = 'hidden'; h.name = 'action'; h.value = 'photo_add'; f.appendChild(h);
+          setTimeout(function () { b.disabled = true; b.textContent = 'Uploading… one moment'; }, 0);
+        });
+      })();
+      </script>
     </div>
 
     <form method="post" class="ad-box ad-form"><?= csrf_field() ?>
